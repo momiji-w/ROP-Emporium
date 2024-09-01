@@ -9,5 +9,5 @@ that is presented in the binary or the library that is imported to the binary. t
 are called `Gadgets` and when chained together they're called `ROP chain`.
 
 #### What is ROP Emporium
-ROP Emporium is a website that provides a series of challenges in ROP that teachs us 
-about using ROP in exploitation.
+ROP Emporium is a website that provides a series of challenges that teachs us 
+ROP techniques in exploitation.
